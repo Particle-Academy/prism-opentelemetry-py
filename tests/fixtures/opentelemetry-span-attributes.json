@@ -1,0 +1,1239 @@
+{
+    "suite": "opentelemetry-span-attributes",
+    "schema_version": 1,
+    "corpus_version": "0.1.0",
+    "generated_by": "prism-parity:tools/generate-otel-span-attributes.php for php; the ports' own runners for ts and py. Every attribute map is execution output read back off an exporter — a hand-authored map would assert the author's model of the bridge rather than the bridge.",
+    "scope": "The ROOT span of one generation, and only that. Step and tool spans are a separate value with a separate failure mode and are not covered here; a reader who takes this suite for whole-package coverage has made the mistake this repository's README warns about twice.",
+    "inputs": {
+        "operation": "One of Prism's own TelemetryOperation values -- text, structured, embeddings, image, stream. The NEUTRAL vocabulary the ecosystem already defines, so no language is handed a value pre-mapped into its own spelling.",
+        "finish_reason": "One of Prism's own FinishReason values -- stop, tool-calls, length. Same reasoning.",
+        "capture_content": "Whether the APPLICATION has content capture enabled. In the reference that is `prism.telemetry.capture_content`, which gates the events; in the ports it is the bridge's own `captureContent`. Two designs, one composed contract -- which is exactly what otel-0013 probes."
+    },
+    "cases": [
+        {
+            "id": "otel-0001",
+            "title": "a plain text generation",
+            "generation": {
+                "operation": "text",
+                "provider": "openai",
+                "model": "gpt-4o",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                },
+                "input": null,
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "The control. Every attribute a generation always carries, with nothing optional set. If this row disagrees the mapping is wrong at the root and every other row is noise.",
+            "spans": {
+                "php": {
+                    "name": "chat gpt-4o",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0002",
+            "title": "an embeddings generation",
+            "generation": {
+                "operation": "embeddings",
+                "provider": "openai",
+                "model": "text-embedding-3-small",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": null,
+                "usage": {
+                    "prompt_tokens": 4,
+                    "completion_tokens": 0,
+                    "cost": null
+                },
+                "input": null,
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "Embeddings is the one operation all three agree is not a chat, so it is the row that proves the span-kind branch is reached at all rather than a constant.",
+            "spans": {
+                "php": {
+                    "name": "embeddings text-embedding-3-small",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "embeddings",
+                        "gen_ai.request.model": "text-embedding-3-small",
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 4,
+                        "gen_ai.usage.output_tokens": 0,
+                        "llm.model_name": "text-embedding-3-small",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 0,
+                        "llm.token_count.prompt": 4,
+                        "llm.token_count.total": 4,
+                        "openinference.span.kind": "EMBEDDING"
+                    }
+                },
+                "ts": {
+                    "name": "embeddings text-embedding-3-small",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "embeddings",
+                        "gen_ai.request.model": "text-embedding-3-small",
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 4,
+                        "gen_ai.usage.output_tokens": 0,
+                        "llm.model_name": "text-embedding-3-small",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 0,
+                        "llm.token_count.prompt": 4,
+                        "llm.token_count.total": 4,
+                        "openinference.span.kind": "EMBEDDING"
+                    }
+                },
+                "py": {
+                    "name": "embeddings text-embedding-3-small",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "embeddings",
+                        "gen_ai.request.model": "text-embedding-3-small",
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 4,
+                        "gen_ai.usage.output_tokens": 0,
+                        "llm.model_name": "text-embedding-3-small",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 0,
+                        "llm.token_count.prompt": 4,
+                        "llm.token_count.total": 4,
+                        "openinference.span.kind": "EMBEDDING"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span status"
+            ]
+        },
+        {
+            "id": "otel-0003",
+            "title": "an image generation",
+            "generation": {
+                "operation": "image",
+                "provider": "openai",
+                "model": "dall-e-3",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": null,
+                "usage": null,
+                "input": null,
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "An operation that is neither a chat nor an embedding. The reference has an explicit name for it and folds it into CHAIN; the ports pass the operation through and fall to a default kind.",
+            "spans": {
+                "php": {
+                    "name": "image_generation dall-e-3",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "image_generation",
+                        "gen_ai.request.model": "dall-e-3",
+                        "gen_ai.system": "openai",
+                        "llm.model_name": "dall-e-3",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "image dall-e-3",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "image",
+                        "gen_ai.request.model": "dall-e-3",
+                        "gen_ai.system": "openai",
+                        "llm.model_name": "dall-e-3",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "openinference.span.kind": "LLM"
+                    }
+                },
+                "py": {
+                    "name": "image dall-e-3",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "image",
+                        "gen_ai.request.model": "dall-e-3",
+                        "gen_ai.system": "openai",
+                        "llm.model_name": "dall-e-3",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "openinference.span.kind": "LLM"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "openinference.span.kind"
+            ]
+        },
+        {
+            "id": "otel-0004",
+            "title": "a streamed generation",
+            "generation": {
+                "operation": "stream",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 12,
+                    "completion_tokens": 30,
+                    "cost": null
+                },
+                "input": null,
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "Streaming is a transport, not a different operation, and a reader grouping spans by operation should not see a fourth category appear because the caller streamed.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 12,
+                        "gen_ai.usage.output_tokens": 30,
+                        "llm.model_name": "claude-sonnet-4",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 30,
+                        "llm.token_count.prompt": 12,
+                        "llm.token_count.total": 42,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "stream claude-sonnet-4",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "stream",
+                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 12,
+                        "gen_ai.usage.output_tokens": 30,
+                        "llm.model_name": "claude-sonnet-4",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 30,
+                        "llm.token_count.prompt": 12,
+                        "llm.token_count.total": 42,
+                        "openinference.span.kind": "LLM"
+                    }
+                },
+                "py": {
+                    "name": "stream claude-sonnet-4",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "stream",
+                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 12,
+                        "gen_ai.usage.output_tokens": 30,
+                        "llm.model_name": "claude-sonnet-4",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 30,
+                        "llm.token_count.prompt": 12,
+                        "llm.token_count.total": 42,
+                        "openinference.span.kind": "LLM"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "openinference.span.kind"
+            ]
+        },
+        {
+            "id": "otel-0005",
+            "title": "a structured generation",
+            "generation": {
+                "operation": "structured",
+                "provider": "openai",
+                "model": "gpt-4o",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 20,
+                    "completion_tokens": 8,
+                    "cost": null
+                },
+                "input": null,
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "Structured output is still a chat to the GenAI conventions. Pinned so that a port cannot invent a fifth operation name for it.",
+            "spans": {
+                "php": {
+                    "name": "chat gpt-4o",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 20,
+                        "gen_ai.usage.output_tokens": 8,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 8,
+                        "llm.token_count.prompt": 20,
+                        "llm.token_count.total": 28,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "structured gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "structured",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 20,
+                        "gen_ai.usage.output_tokens": 8,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 8,
+                        "llm.token_count.prompt": 20,
+                        "llm.token_count.total": 28,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "structured gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "structured",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 20,
+                        "gen_ai.usage.output_tokens": 8,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 8,
+                        "llm.token_count.prompt": 20,
+                        "llm.token_count.total": 28,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0006",
+            "title": "session and user ids, which Phoenix groups by",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4",
+                "session_id": "session-9",
+                "user_id": "user-7",
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 1,
+                    "completion_tokens": 1,
+                    "cost": null
+                },
+                "input": null,
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "These two are the join keys a dashboard groups a conversation by. A language that spelled either differently would render one user's session as two.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 1,
+                        "gen_ai.usage.output_tokens": 1,
+                        "llm.model_name": "claude-sonnet-4",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 1,
+                        "llm.token_count.prompt": 1,
+                        "llm.token_count.total": 2,
+                        "openinference.span.kind": "CHAIN",
+                        "session.id": "session-9",
+                        "user.id": "user-7"
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 1,
+                        "gen_ai.usage.output_tokens": 1,
+                        "llm.model_name": "claude-sonnet-4",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 1,
+                        "llm.token_count.prompt": 1,
+                        "llm.token_count.total": 2,
+                        "openinference.span.kind": "CHAIN",
+                        "session.id": "session-9",
+                        "user.id": "user-7"
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 1,
+                        "gen_ai.usage.output_tokens": 1,
+                        "llm.model_name": "claude-sonnet-4",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 1,
+                        "llm.token_count.prompt": 1,
+                        "llm.token_count.total": 2,
+                        "openinference.span.kind": "CHAIN",
+                        "session.id": "session-9",
+                        "user.id": "user-7"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0007",
+            "title": "a reported cost",
+            "generation": {
+                "operation": "text",
+                "provider": "perplexity",
+                "model": "sonar",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 1,
+                    "completion_tokens": 1,
+                    "cost": 0.0025
+                },
+                "input": null,
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "Only two providers report a real cost. The attribute is Prism-specific and namespaced, so it is exactly the sort of key a port could spell from memory.",
+            "spans": {
+                "php": {
+                    "name": "chat sonar",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "sonar",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "perplexity",
+                        "gen_ai.usage.cost": 0.0025,
+                        "gen_ai.usage.input_tokens": 1,
+                        "gen_ai.usage.output_tokens": 1,
+                        "llm.model_name": "sonar",
+                        "llm.provider": "perplexity",
+                        "llm.system": "perplexity",
+                        "llm.token_count.completion": 1,
+                        "llm.token_count.prompt": 1,
+                        "llm.token_count.total": 2,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text sonar",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "sonar",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "perplexity",
+                        "gen_ai.usage.cost": 0.0025,
+                        "gen_ai.usage.input_tokens": 1,
+                        "gen_ai.usage.output_tokens": 1,
+                        "llm.model_name": "sonar",
+                        "llm.provider": "perplexity",
+                        "llm.system": "perplexity",
+                        "llm.token_count.completion": 1,
+                        "llm.token_count.prompt": 1,
+                        "llm.token_count.total": 2,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text sonar",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "sonar",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "perplexity",
+                        "gen_ai.usage.cost": 0.0025,
+                        "gen_ai.usage.input_tokens": 1,
+                        "gen_ai.usage.output_tokens": 1,
+                        "llm.model_name": "sonar",
+                        "llm.provider": "perplexity",
+                        "llm.system": "perplexity",
+                        "llm.token_count.completion": 1,
+                        "llm.token_count.prompt": 1,
+                        "llm.token_count.total": 2,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0008",
+            "title": "no reported cost, which is not a cost of zero",
+            "generation": {
+                "operation": "text",
+                "provider": "openai",
+                "model": "gpt-4o",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 1,
+                    "completion_tokens": 1,
+                    "cost": null
+                },
+                "input": null,
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "A span that spent money must stay distinguishable from one that did not. Writing 0.0 here would make a missing figure look like a free call, and no error would ever be raised.",
+            "spans": {
+                "php": {
+                    "name": "chat gpt-4o",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 1,
+                        "gen_ai.usage.output_tokens": 1,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 1,
+                        "llm.token_count.prompt": 1,
+                        "llm.token_count.total": 2,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 1,
+                        "gen_ai.usage.output_tokens": 1,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 1,
+                        "llm.token_count.prompt": 1,
+                        "llm.token_count.total": 2,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 1,
+                        "gen_ai.usage.output_tokens": 1,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 1,
+                        "llm.token_count.prompt": 1,
+                        "llm.token_count.total": 2,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0009",
+            "title": "a finish reason that is not stop",
+            "generation": {
+                "operation": "text",
+                "provider": "openai",
+                "model": "gpt-4o",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "tool-calls",
+                "usage": {
+                    "prompt_tokens": 5,
+                    "completion_tokens": 2,
+                    "cost": null
+                },
+                "input": null,
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "A hyphenated reason, chosen because it is the one whose neutral spelling and whose PHP enum CASE NAME differ most visibly. A dashboard filtering on this value is the consumer that finds out.",
+            "spans": {
+                "php": {
+                    "name": "chat gpt-4o",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "ToolCalls"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 5,
+                        "gen_ai.usage.output_tokens": 2,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 2,
+                        "llm.token_count.prompt": 5,
+                        "llm.token_count.total": 7,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "tool-calls"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 5,
+                        "gen_ai.usage.output_tokens": 2,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 2,
+                        "llm.token_count.prompt": 5,
+                        "llm.token_count.total": 7,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "tool-calls"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 5,
+                        "gen_ai.usage.output_tokens": 2,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 2,
+                        "llm.token_count.prompt": 5,
+                        "llm.token_count.total": 7,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0010",
+            "title": "captured content, ascii",
+            "generation": {
+                "operation": "text",
+                "provider": "openai",
+                "model": "gpt-4o",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 3,
+                    "cost": null
+                },
+                "input": {
+                    "prompt": "hi there"
+                },
+                "output": null
+            },
+            "capture_content": true,
+            "max_content_length": 65536,
+            "notes": "The first row where user content actually leaves the application. Pins the JSON ENCODING as much as the attribute key: the same payload has to serialise to the same bytes, or two services' spans never match on a search.",
+            "spans": {
+                "php": {
+                    "name": "chat gpt-4o",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\":\"hi there\"}",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\":\"hi there\"}",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\": \"hi there\"}",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "input.value"
+            ]
+        },
+        {
+            "id": "otel-0011",
+            "title": "captured content past the cap",
+            "generation": {
+                "operation": "text",
+                "provider": "openai",
+                "model": "gpt-4o",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 3,
+                    "cost": null
+                },
+                "input": {
+                    "prompt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                "output": null
+            },
+            "capture_content": true,
+            "max_content_length": 16,
+            "notes": "The cap is a bound on what a hostile or simply large payload can do to a span and to the OTLP export. Ascii only, so the boundary is unambiguous and any disagreement here is in the cap arithmetic rather than in the encoding.",
+            "spans": {
+                "php": {
+                    "name": "chat gpt-4o",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\":\"aaaaa…[truncated]",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\":\"aaaaa…[truncated]",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\": \"aaaa…[truncated]",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "input.value"
+            ]
+        },
+        {
+            "id": "otel-0012",
+            "title": "captured content past the cap, multi-byte",
+            "generation": {
+                "operation": "text",
+                "provider": "openai",
+                "model": "gpt-4o",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 3,
+                    "cost": null
+                },
+                "input": {
+                    "prompt": "日本語のテキストです"
+                },
+                "output": null
+            },
+            "capture_content": true,
+            "max_content_length": 16,
+            "notes": "The same cap against text that is not one byte per character. Bytes, UTF-16 code units and code points are three different rulers, and a cap measured with each gives three different strings from one input -- none of which errors.",
+            "spans": {
+                "php": {
+                    "name": "chat gpt-4o",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\":\"日…[truncated]",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\":\"日本語のテ…[truncated]",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\": \"\\u65…[truncated]",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "input.value"
+            ]
+        },
+        {
+            "id": "otel-0013",
+            "title": "content reaching the bridge with capture OFF",
+            "generation": {
+                "operation": "text",
+                "provider": "openai",
+                "model": "gpt-4o",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 3,
+                    "cost": null
+                },
+                "input": {
+                    "prompt": "my card number is 4111 1111 1111 1111"
+                },
+                "output": null
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "THE SECURITY ROW. Capture is off and content arrives at the bridge anyway -- a replay, a hand-built event, a custom emitter, a second subscriber. The question is not what the application configured, it is whether the bridge itself refuses. Whichever way this row lands it is worth knowing, because the answer differs by language and neither side is obviously wrong until it is written down.",
+            "spans": {
+                "php": {
+                    "name": "chat gpt-4o",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "input.mime_type": "application/json",
+                        "input.value": "{\"prompt\":\"my card number is 4111 1111 1111 1111\"}",
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text gpt-4o",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "openai",
+                        "gen_ai.usage.input_tokens": 3,
+                        "gen_ai.usage.output_tokens": 3,
+                        "llm.model_name": "gpt-4o",
+                        "llm.provider": "openai",
+                        "llm.system": "openai",
+                        "llm.token_count.completion": 3,
+                        "llm.token_count.prompt": 3,
+                        "llm.token_count.total": 6,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "input.mime_type",
+                "input.value"
+            ]
+        }
+    ]
+}
