@@ -13,6 +13,7 @@
         {
             "id": "otel-0001",
             "title": "a plain text generation",
+            "since": "0.1.0",
             "generation": {
                 "operation": "text",
                 "provider": "openai",
@@ -107,6 +108,7 @@
         {
             "id": "otel-0002",
             "title": "an embeddings generation",
+            "since": "0.1.0",
             "generation": {
                 "operation": "embeddings",
                 "provider": "openai",
@@ -189,6 +191,7 @@
         {
             "id": "otel-0003",
             "title": "an image generation",
+            "since": "0.1.0",
             "generation": {
                 "operation": "image",
                 "provider": "openai",
@@ -255,6 +258,7 @@
         {
             "id": "otel-0004",
             "title": "a streamed generation",
+            "since": "0.1.0",
             "generation": {
                 "operation": "stream",
                 "provider": "anthropic",
@@ -350,6 +354,7 @@
         {
             "id": "otel-0005",
             "title": "a structured generation",
+            "since": "0.1.0",
             "generation": {
                 "operation": "structured",
                 "provider": "openai",
@@ -444,6 +449,7 @@
         {
             "id": "otel-0006",
             "title": "session and user ids, which Phoenix groups by",
+            "since": "0.1.0",
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
@@ -544,6 +550,7 @@
         {
             "id": "otel-0007",
             "title": "a reported cost",
+            "since": "0.1.0",
             "generation": {
                 "operation": "text",
                 "provider": "perplexity",
@@ -641,6 +648,7 @@
         {
             "id": "otel-0008",
             "title": "no reported cost, which is not a cost of zero",
+            "since": "0.1.0",
             "generation": {
                 "operation": "text",
                 "provider": "openai",
@@ -735,6 +743,7 @@
         {
             "id": "otel-0009",
             "title": "a finish reason that is not stop",
+            "since": "0.1.0",
             "generation": {
                 "operation": "text",
                 "provider": "openai",
@@ -829,6 +838,7 @@
         {
             "id": "otel-0010",
             "title": "captured content, ascii",
+            "since": "0.1.0",
             "generation": {
                 "operation": "text",
                 "provider": "openai",
@@ -932,6 +942,7 @@
         {
             "id": "otel-0011",
             "title": "captured content past the cap",
+            "since": "0.1.0",
             "generation": {
                 "operation": "text",
                 "provider": "openai",
@@ -1035,6 +1046,7 @@
         {
             "id": "otel-0012",
             "title": "captured content past the cap, multi-byte",
+            "since": "0.1.0",
             "generation": {
                 "operation": "text",
                 "provider": "openai",
@@ -1138,6 +1150,7 @@
         {
             "id": "otel-0013",
             "title": "content reaching the bridge with capture OFF",
+            "since": "0.1.0",
             "generation": {
                 "operation": "text",
                 "provider": "openai",
