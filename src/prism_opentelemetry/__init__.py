@@ -320,6 +320,17 @@ class Usage:
 class RateLimit:
     """One quota bucket the provider reported -- `requests`, `tokens`, ...
 
+    NOT CONTENT, and therefore NOT behind `capture_content`. A bucket is a name,
+    two integers and a reset instant, all read off a response header the
+    provider chose; nothing the user wrote and nothing the model returned can
+    reach it. `input.value` and `output.value` are what the gate exists for and
+    they go through `_capture`; these do not, deliberately, and moving them
+    behind the switch would be a regression rather than a tidy-up. It was one in
+    the reference (G-45): quota headroom rode on the content switch, so a
+    successful generation exported no quota under the default config and an
+    operator saw the numbers only once a 429 had already made them useless as
+    headroom.
+
     `resets_at` is a datetime and NOT a number, so there is no chance of a
     caller handing over seconds where the code expected milliseconds; the
     conversion to the exported epoch happens in exactly one place.
@@ -465,6 +476,9 @@ class TelemetrySubscriber:
         if finish_reason is not None:
             span.set_attribute(GenAi.RESPONSE_FINISH_REASONS, [finish_reason])
 
+        # Usage and rate limits are unconditional; only the output goes through
+        # the content gate. Three arguments, two privacy classes -- see
+        # RateLimit for why quota is not content.
         self._apply_usage(span, usage)
         self._apply_rate_limits(span, rate_limits)
         self._capture(span, OpenInference.OUTPUT_VALUE, output, OpenInference.OUTPUT_MIME_TYPE)
