@@ -21,13 +21,16 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from prism_opentelemetry import (
+    GenAi,
     GenerationContext,
+    RateLimit,
     SpanStore,
     TelemetrySubscriber,
     Usage,
@@ -72,6 +75,23 @@ class RecordingTracer:
         return span
 
 
+def rate_limit(entry: dict[str, Any]) -> RateLimit:
+    """A corpus bucket as this port's bridge takes one.
+
+    `resets_at` is parsed HERE and not in the bridge: the bridge is handed an
+    instant, so nothing in this comparison depends on three languages agreeing
+    about how to render or re-render a date.
+    """
+    return RateLimit(
+        name=entry["name"],
+        limit=entry["limit"],
+        remaining=entry["remaining"],
+        resets_at=(
+            None if entry["resets_at"] is None else datetime.fromisoformat(entry["resets_at"])
+        ),
+    )
+
+
 def record(entry: dict[str, Any]) -> dict[str, Any]:
     g = entry["generation"]
     tracer = RecordingTracer()
@@ -107,7 +127,13 @@ def record(entry: dict[str, Any]) -> dict[str, Any]:
     )
 
     subscriber.on_generation_completed(
-        entry["id"], finish_reason=g["finish_reason"], usage=usage, output=g["output"]
+        entry["id"],
+        finish_reason=g["finish_reason"],
+        usage=usage,
+        output=g["output"],
+        rate_limits=(
+            None if g["rate_limits"] is None else [rate_limit(r) for r in g["rate_limits"]]
+        ),
     )
 
     assert len(tracer.spans) == 1
@@ -124,8 +150,15 @@ def case_of(case_id: str) -> dict[str, Any]:
     return next(entry for entry in CORPUS["cases"] if entry["id"] == case_id)
 
 
+def rate_limit_attributes_of(attributes: dict[str, Any]) -> dict[str, Any]:
+    """Just the rate-limit attributes of an attribute map."""
+    return {
+        key: value for key, value in attributes.items() if key.startswith(GenAi.RATE_LIMIT_PREFIX)
+    }
+
+
 def test_is_the_whole_suite_not_a_subset_someone_trimmed_to_green() -> None:
-    assert len(CORPUS["cases"]) == 13
+    assert len(CORPUS["cases"]) == 18
 
 
 @pytest.mark.parametrize("entry", CORPUS["cases"], ids=lambda e: e["id"])
@@ -257,3 +290,139 @@ def test_refuses_content_that_reaches_it_with_capture_off_which_the_reference_do
     assert entry["capture_content"] is False
     assert "input.value" not in record(entry)["attributes"]
     assert "input.value" in entry["spans"]["php"]["attributes"]
+
+
+def test_exports_the_provider_rate_limits_which_no_semantic_convention_names() -> None:
+    """The OpenTelemetry GenAI conventions define NOTHING for rate limits or
+    quota -- checked 2026-09-05 against the gen_ai and http attribute
+    registries. `gen_ai.error.type` has a `rate_limit` member, but that names a
+    failure rather than a headroom, and the nearest mechanism in all of semconv
+    is the generic opt-in `http.response.header.<key>` capture, which records a
+    header verbatim and knows nothing about the bucket it belongs to.
+
+    So these keys are OURS, and they live under `prism.` rather than inside
+    `gen_ai.` so a real convention can arrive later without two spellings
+    meaning subtly different things.
+    """
+    attributes = record(case_of("otel-0014"))["attributes"]
+
+    assert rate_limit_attributes_of(attributes) == {
+        "prism.rate_limit.buckets": ["requests"],
+        "prism.rate_limit.requests.limit": 1000,
+        "prism.rate_limit.requests.remaining": 999,
+        "prism.rate_limit.requests.resets_at_unix": 1788611696,
+    }
+
+
+def test_writes_a_key_only_for_the_fields_the_provider_actually_sent() -> None:
+    """A quota of zero and a quota nobody reported are different facts, and 0
+    says the first when the truth is the second. The cost precedent, one level
+    down.
+    """
+    attributes = record(case_of("otel-0015"))["attributes"]
+
+    assert "prism.rate_limit.input-tokens.limit" in attributes
+    assert "prism.rate_limit.input-tokens.resets_at_unix" not in attributes
+    assert "prism.rate_limit.output-tokens.limit" not in attributes
+
+
+def test_writes_nothing_when_the_provider_reported_no_rate_limits_at_all() -> None:
+    """Present-and-empty and absent are different values to a backend, and this
+    is the COMMON case rather than an edge one: several providers report no
+    quota headers at all, in every language. An empty `buckets` array would put
+    "we asked, there is no quota" on every span they touch.
+    """
+    assert rate_limit_attributes_of(record(case_of("otel-0016"))["attributes"]) == {}
+
+
+def test_refuses_every_hostile_spelling_of_a_bucket_name_and_keeps_the_real_one() -> None:
+    """A bucket name is chosen by the PROVIDER and becomes part of an attribute
+    KEY -- the G-36 shape, one layer out. Seven hostile spellings of `tokens`
+    (trailing space, trailing newline, case fold, Cyrillic homoglyph, an
+    embedded dot that would forge a nested key, an empty name, and a duplicate
+    appended after the real bucket) and one real one.
+
+    Dropped rather than normalised: normalising means two distinct names can
+    collapse onto one key, at which point the hostile bucket overwrites the real
+    bucket's numbers instead of being ignored. The duplicate carried 8, so FIRST
+    winning is what keeps 7 on the span.
+    """
+    assert rate_limit_attributes_of(record(case_of("otel-0017"))["attributes"]) == {
+        "prism.rate_limit.buckets": ["tokens"],
+        "prism.rate_limit.tokens.limit": 7,
+        "prism.rate_limit.tokens.remaining": 7,
+    }
+
+
+def test_caps_how_many_buckets_a_span_can_carry_however_well_formed_they_are() -> None:
+    """The alphabet gate bounds what a key may LOOK like and not how many there
+    are, and backends index keys.
+    """
+    attributes = record(case_of("otel-0018"))["attributes"]
+    buckets = attributes["prism.rate_limit.buckets"]
+
+    assert len(buckets) == GenAi.RATE_LIMIT_MAX_BUCKETS
+    assert buckets[0] == "b00"
+    assert "prism.rate_limit.b16.limit" not in attributes
+
+
+def test_exports_the_same_rate_limit_attributes_as_the_reference_and_the_other_port() -> None:
+    """The one thing in this suite that AGREES.
+
+    Every other row is pinned against its own language's recorded span, which is
+    exactly the assertion that cannot see a cross-language divergence -- so the
+    rate-limit keys are compared here across the three recorded maps directly.
+    """
+    compared = 0
+
+    for entry in CORPUS["cases"]:
+        php = rate_limit_attributes_of(entry["spans"]["php"]["attributes"])
+
+        assert php == rate_limit_attributes_of(entry["spans"]["ts"]["attributes"])
+        assert php == rate_limit_attributes_of(entry["spans"]["py"]["attributes"])
+
+        compared += len(php)
+
+    # Vacuity guard: three empty maps agree about nothing.
+    assert compared == 48
+
+
+def test_exports_the_rate_limits_a_rate_limited_generation_failed_with() -> None:
+    """The 429 is the moment an operator most wants these numbers, and the one
+    moment they cannot arrive on a response -- there is no response.
+    """
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, SpanStore(), now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(
+            trace_id="rate-limited",
+            operation="text",
+            provider="anthropic",
+            model="claude-sonnet-4-5",
+        )
+    )
+
+    class RateLimited(Exception):
+        def __init__(self, rate_limits: list[RateLimit]) -> None:
+            super().__init__("rate limited")
+            self.rate_limits = rate_limits
+
+    error = RateLimited(
+        [
+            RateLimit(
+                name="requests",
+                limit=50,
+                remaining=0,
+                resets_at=datetime.fromtimestamp(1788611696, tz=timezone.utc),
+            )
+        ]
+    )
+
+    subscriber.on_generation_failed("rate-limited", error)
+
+    assert rate_limit_attributes_of(tracer.spans[0].attributes) == {
+        "prism.rate_limit.buckets": ["requests"],
+        "prism.rate_limit.requests.limit": 50,
+        "prism.rate_limit.requests.remaining": 0,
+        "prism.rate_limit.requests.resets_at_unix": 1788611696,
+    }

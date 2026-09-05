@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json as _json
+import math
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Protocol
 
 __all__ = [
@@ -13,6 +15,7 @@ __all__ = [
     "GenerationContext",
     "OpenInference",
     "PendingTool",
+    "RateLimit",
     "Span",
     "SpanStore",
     "TelemetrySubscriber",
@@ -44,6 +47,92 @@ class GenAi:
     STEP_INDEX = "prism.step.index"
     TOOL_INDEX = "prism.tool.index"
     OPERATION_EXECUTE_TOOL = "execute_tool"
+
+    # -- provider rate limits: quota headroom, beside the latency -------------
+    #
+    # THE SEMANTIC CONVENTIONS DEFINE NOTHING FOR THIS. Checked 2026-09-05
+    # against the gen_ai and http attribute registries: `gen_ai.*` has usage,
+    # request and response namespaces and no quota anywhere in them, and the
+    # closest thing in all of semconv is the generic, opt-in
+    # `http.response.header.<key>` capture -- which records a header verbatim
+    # and knows nothing about which bucket it describes. `gen_ai.error.type`
+    # has a `rate_limit` member, but that names a failure, not a headroom.
+    #
+    # So these are CUSTOM names, under `prism.` beside STEP_INDEX rather than
+    # inside `gen_ai.`. Squatting in a standard namespace is worse than being
+    # outside it: when a real `gen_ai.rate_limit.*` arrives, a backend must not
+    # find two spellings of it meaning subtly different things. (USAGE_COST
+    # above is the counter-example already in this file: it claims to be
+    # namespaced away from semconv while sitting directly inside
+    # `gen_ai.usage.`.)
+    #
+    # A rate limit is a LIST of buckets -- requests, tokens, input-tokens --
+    # and a span attribute is flat, so the list is flattened BY BUCKET NAME:
+    #
+    #     prism.rate_limit.buckets                  ["requests","tokens"]
+    #     prism.rate_limit.requests.limit           1000
+    #     prism.rate_limit.requests.remaining       999
+    #     prism.rate_limit.requests.resets_at_unix  1788611696
+    #
+    # Name-keyed rather than index-keyed (`...rate_limit.0.limit`) or
+    # serialised into one JSON blob, because the whole point is that a backend
+    # can FILTER on it: `prism.rate_limit.tokens.remaining < 1000` is a numeric
+    # predicate a dashboard can express, and it does not depend on which
+    # position the provider happened to list the bucket in. A JSON blob is
+    # unfilterable, and an index is a stable key for an unstable thing.
+    #
+    # The cost of name-keying is that the ATTRIBUTE KEY SPACE becomes
+    # provider-controlled, which is a real hazard -- backends index keys, and
+    # unbounded keys are how an observability bill becomes an incident. Hence
+    # the alphabet and the bucket cap below.
+    RATE_LIMIT_PREFIX = "prism.rate_limit."
+    RATE_LIMIT_BUCKETS = "prism.rate_limit.buckets"
+    RATE_LIMIT_FIELD_LIMIT = "limit"
+    RATE_LIMIT_FIELD_REMAINING = "remaining"
+
+    # An INTEGER Unix epoch in SECONDS, floored -- never a formatted date.
+    #
+    # Date formatting is precisely where three languages produce three strings
+    # from one instant: an ISO-8601 rendering differs on the offset spelling
+    # (`+00:00` vs `Z`), on whether fractional seconds appear, and on how many
+    # digits of them. None of that errors; the two services simply stop
+    # matching. An integer has one spelling in all three languages.
+    #
+    # The `_unix` suffix is not decoration. The reference's ProviderRateLimit
+    # serialises `resets_at` as an ISO-8601 STRING, and a reader who saw the
+    # same key here would reasonably expect the same value.
+    RATE_LIMIT_FIELD_RESETS_AT = "resets_at_unix"
+
+    # The only characters a bucket name may contain, spelled out.
+    #
+    # Not a regex, not `str.lower()` -- an explicit codepoint set, spelled
+    # identically in PHP, TypeScript and Python. This ecosystem has been bitten
+    # by the alternative: a single trailing space defeated a tool-name
+    # reservation in all three languages at once, and closing it with each
+    # language's own strip()/trim() would have shut the ASCII hole and opened
+    # three new Unicode ones. (`str.lower()` is the sharper trap here: it is
+    # Unicode-aware, so a capital dotted I becomes TWO codepoints.)
+    #
+    # A bucket whose name contains anything else is DROPPED, not repaired.
+    # Repairing means normalising, and normalising means two distinct names can
+    # collapse onto one key -- so a bucket named `tokens` followed by a
+    # zero-width space could overwrite the real `tokens`. Dropping cannot
+    # collide with anything.
+    #
+    # Every accepted character is one byte, so the length limit measures the
+    # same thing whether counted in bytes (PHP), UTF-16 code units (JavaScript)
+    # or codepoints (Python). That is why the alphabet is checked FIRST and the
+    # length second.
+    RATE_LIMIT_NAME_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789-_"
+    RATE_LIMIT_MAX_NAME_LENGTH = 64
+
+    # At most this many buckets reach a span, in the order the provider gave.
+    #
+    # The alphabet gate bounds what a key may LOOK like; it does not bound how
+    # many there are. A provider (or anything sitting between us and one) that
+    # returned ten thousand well-formed bucket names would otherwise put ten
+    # thousand distinct attribute keys on every span.
+    RATE_LIMIT_MAX_BUCKETS = 16
 
 
 class OpenInference:
@@ -228,6 +317,33 @@ class Usage:
 
 
 @dataclass(frozen=True)
+class RateLimit:
+    """One quota bucket the provider reported -- `requests`, `tokens`, ...
+
+    `resets_at` is a datetime and NOT a number, so there is no chance of a
+    caller handing over seconds where the code expected milliseconds; the
+    conversion to the exported epoch happens in exactly one place.
+
+    The field names are `prism-py`'s own, not a translation of them: its
+    `ProviderRateLimit` is a frozen dataclass with exactly `name`, `limit`,
+    `remaining` and `resets_at`, so one can be handed to this bridge directly.
+    That is deliberate -- until 2026-09-05 `prism-py` had no rate-limit type at
+    all (G-15) and this bridge had nothing to consume, and a shape invented in
+    the meantime would have needed an adapter forever.
+
+    A generation with NO rate limits writes no rate-limit attribute at all --
+    not an empty one -- so a span stays silent about quota rather than
+    asserting there is none. Several providers report no quota headers, so that
+    is the ordinary case rather than an edge one.
+    """
+
+    name: str
+    limit: int | None = None
+    remaining: int | None = None
+    resets_at: datetime | None = None
+
+
+@dataclass(frozen=True)
 class _Options:
     record_exceptions: bool = True
     max_content_length: int = 65_536
@@ -335,6 +451,7 @@ class TelemetrySubscriber:
         finish_reason: str | None = None,
         usage: Usage | None = None,
         output: Any = None,
+        rate_limits: Any = None,
     ) -> None:
         span = self.store.span(trace_id)
         if span is None:
@@ -349,6 +466,7 @@ class TelemetrySubscriber:
             span.set_attribute(GenAi.RESPONSE_FINISH_REASONS, [finish_reason])
 
         self._apply_usage(span, usage)
+        self._apply_rate_limits(span, rate_limits)
         self._capture(span, OpenInference.OUTPUT_VALUE, output, OpenInference.OUTPUT_MIME_TYPE)
 
         span.set_status("ok")
@@ -362,6 +480,12 @@ class TelemetrySubscriber:
 
         for index, tool in enumerate(self.store.take_remaining_tools(trace_id)):
             self._emit_tool(tool, span, index)
+
+        # The 429 is the moment an operator most wants the quota numbers, and it
+        # is the one moment they are guaranteed to be reachable: a rate limited
+        # generation has no response for them to travel on, so they travel on
+        # the error instead.
+        self._apply_rate_limits(span, getattr(error, "rate_limits", None))
 
         if self._record_exceptions:
             span.record_exception(error)
@@ -424,6 +548,89 @@ class TelemetrySubscriber:
         # did not.
         if usage.cost is not None:
             span.set_attribute(GenAi.USAGE_COST, usage.cost)
+
+    def _apply_rate_limits(self, span: Span, rate_limits: Any) -> None:
+        """Flatten the provider's rate-limit buckets onto the span.
+
+        Present-and-empty and absent are different values to a backend, so a
+        generation that reported no rate limits writes NOTHING here. That is
+        the ORDINARY case rather than an edge one: several providers report no
+        quota headers at all. An empty `prism.rate_limit.buckets` would claim we
+        asked and were told nothing, which is not the same as never having been
+        told.
+
+        The same rule one level down: a bucket contributes a key only for the
+        fields the provider actually sent, and a bucket that sent no field at
+        all does not appear in `buckets` either. See GenAi for why the
+        flattening is by name, and what bounds the key space.
+
+        Takes `Any` rather than `list[RateLimit]`: the failure path is handed
+        an arbitrary raised object, and an annotation is not a runtime check.
+        """
+        if not isinstance(rate_limits, (list, tuple)):
+            return
+
+        exported: list[str] = []
+
+        for entry in rate_limits:
+            if len(exported) >= GenAi.RATE_LIMIT_MAX_BUCKETS:
+                break
+
+            raw_name = getattr(entry, "name", None)
+            name = self._rate_limit_bucket_name(raw_name) if isinstance(raw_name, str) else None
+
+            # FIRST bucket of a name wins. A later duplicate -- which only a
+            # hand-built list or a hostile provider produces -- must not be
+            # able to overwrite the numbers already on the span.
+            if name is None or name in exported:
+                continue
+
+            fields: list[tuple[str, int]] = []
+            limit = getattr(entry, "limit", None)
+            remaining = getattr(entry, "remaining", None)
+            resets_at = getattr(entry, "resets_at", None)
+
+            # `isinstance(True, int)` is True in Python, and a boolean written
+            # into an integer attribute changes the attribute's TYPE on the
+            # wire -- which a backend can see.
+            if isinstance(limit, int) and not isinstance(limit, bool):
+                fields.append((GenAi.RATE_LIMIT_FIELD_LIMIT, limit))
+
+            if isinstance(remaining, int) and not isinstance(remaining, bool):
+                fields.append((GenAi.RATE_LIMIT_FIELD_REMAINING, remaining))
+
+            # Seconds, FLOORED -- the same direction as PHP's
+            # DateTimeInterface::getTimestamp() and JavaScript's Math.floor.
+            # `int()` would truncate TOWARDS ZERO, which differs from both for
+            # any instant before 1970.
+            if isinstance(resets_at, datetime):
+                fields.append((GenAi.RATE_LIMIT_FIELD_RESETS_AT, math.floor(resets_at.timestamp())))
+
+            if not fields:
+                continue
+
+            for field_name, value in fields:
+                span.set_attribute(f"{GenAi.RATE_LIMIT_PREFIX}{name}.{field_name}", value)
+
+            exported.append(name)
+
+        if exported:
+            span.set_attribute(GenAi.RATE_LIMIT_BUCKETS, exported)
+
+    @staticmethod
+    def _rate_limit_bucket_name(name: str) -> str | None:
+        """A bucket name safe to make part of an attribute KEY, or None.
+
+        Alphabet first, length second -- see GenAi.RATE_LIMIT_NAME_ALPHABET.
+        """
+        if name == "":
+            return None
+
+        for character in name:
+            if character not in GenAi.RATE_LIMIT_NAME_ALPHABET:
+                return None
+
+        return None if len(name) > GenAi.RATE_LIMIT_MAX_NAME_LENGTH else name
 
     def _capture(self, span: Span, key: str, value: Any, mime_key: str | None) -> None:
         """Write a captured-content attribute -- or do not.

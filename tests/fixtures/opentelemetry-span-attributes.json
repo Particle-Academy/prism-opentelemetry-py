@@ -7,7 +7,8 @@
     "inputs": {
         "operation": "One of Prism's own TelemetryOperation values -- text, structured, embeddings, image, stream. The NEUTRAL vocabulary the ecosystem already defines, so no language is handed a value pre-mapped into its own spelling.",
         "finish_reason": "One of Prism's own FinishReason values -- stop, tool-calls, length. Same reasoning.",
-        "capture_content": "Whether the APPLICATION has content capture enabled. In the reference that is `prism.telemetry.capture_content`, which gates the events; in the ports it is the bridge's own `captureContent`. Two designs, one composed contract -- which is exactly what otel-0013 probes."
+        "capture_content": "Whether the APPLICATION has content capture enabled. In the reference that is `prism.telemetry.capture_content`, which gates the events; in the ports it is the bridge's own `captureContent`. Two designs, one composed contract -- which is exactly what otel-0013 probes.",
+        "rate_limits": "The quota buckets the PROVIDER reported, or null when it reported none. Each is {name, limit, remaining, resets_at}; `resets_at` is an ISO-8601 instant with an explicit offset, which every language parses into its own datetime type before the bridge ever sees it -- the bridge takes an instant, never a string, so no runner is asked to compare a formatted date. Reaching the bridge is where the three DIVERGE, and that divergence is real rather than an artefact: the reference has no channel for rate limits except the response's Meta, so a case with rate limits hands PHP a response object carrying one, while the ports take them as their own argument. Recorded here because a reader comparing the runners will otherwise think one of them was fed differently by mistake."
     },
     "cases": [
         {
@@ -27,7 +28,8 @@
                     "cost": null
                 },
                 "input": null,
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -122,7 +124,8 @@
                     "cost": null
                 },
                 "input": null,
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -201,7 +204,8 @@
                 "finish_reason": null,
                 "usage": null,
                 "input": null,
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -272,7 +276,8 @@
                     "cost": null
                 },
                 "input": null,
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -368,7 +373,8 @@
                     "cost": null
                 },
                 "input": null,
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -463,7 +469,8 @@
                     "cost": null
                 },
                 "input": null,
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -564,7 +571,8 @@
                     "cost": 0.0025
                 },
                 "input": null,
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -662,7 +670,8 @@
                     "cost": null
                 },
                 "input": null,
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -757,7 +766,8 @@
                     "cost": null
                 },
                 "input": null,
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -854,7 +864,8 @@
                 "input": {
                     "prompt": "hi there"
                 },
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": true,
             "max_content_length": 65536,
@@ -958,7 +969,8 @@
                 "input": {
                     "prompt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                 },
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": true,
             "max_content_length": 16,
@@ -1062,7 +1074,8 @@
                 "input": {
                     "prompt": "日本語のテキストです"
                 },
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": true,
             "max_content_length": 16,
@@ -1166,7 +1179,8 @@
                 "input": {
                     "prompt": "my card number is 4111 1111 1111 1111"
                 },
-                "output": null
+                "output": null,
+                "rate_limits": null
             },
             "capture_content": false,
             "max_content_length": 65536,
@@ -1246,6 +1260,907 @@
                 "gen_ai.response.finish_reasons",
                 "input.mime_type",
                 "input.value"
+            ]
+        },
+        {
+            "id": "otel-0014",
+            "title": "quota headroom, beside the latency",
+            "since": "0.1.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                },
+                "input": null,
+                "output": null,
+                "rate_limits": [
+                    {
+                        "name": "requests",
+                        "limit": 1000,
+                        "remaining": 999,
+                        "resets_at": "2026-09-05T12:34:56+00:00"
+                    }
+                ]
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "The control for the rate-limit rows. One bucket with all three fields, so the attribute NAMES are pinned before anything harder is asked. The OpenTelemetry GenAI conventions define nothing for rate limits or quota -- checked against the gen_ai and http attribute registries on 2026-09-05, where the closest thing anywhere in semconv is the generic opt-in `http.response.header.<key>` capture -- so `prism.rate_limit.*` is a CUSTOM name, deliberately outside `gen_ai.` rather than squatting inside it. If this row ever disagrees, an operator reading a Phoenix dashboard is looking at two different keys for one number.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.buckets": [
+                            "requests"
+                        ],
+                        "prism.rate_limit.requests.limit": 1000,
+                        "prism.rate_limit.requests.remaining": 999,
+                        "prism.rate_limit.requests.resets_at_unix": 1788611696
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.buckets": [
+                            "requests"
+                        ],
+                        "prism.rate_limit.requests.limit": 1000,
+                        "prism.rate_limit.requests.remaining": 999,
+                        "prism.rate_limit.requests.resets_at_unix": 1788611696
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.buckets": [
+                            "requests"
+                        ],
+                        "prism.rate_limit.requests.limit": 1000,
+                        "prism.rate_limit.requests.remaining": 999,
+                        "prism.rate_limit.requests.resets_at_unix": 1788611696
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0015",
+            "title": "several buckets, and only the fields the provider sent",
+            "since": "0.1.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                },
+                "input": null,
+                "output": null,
+                "rate_limits": [
+                    {
+                        "name": "requests",
+                        "limit": 1000,
+                        "remaining": 999,
+                        "resets_at": "2026-09-05T12:34:56+00:00"
+                    },
+                    {
+                        "name": "input-tokens",
+                        "limit": 80000,
+                        "remaining": 79000,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "output-tokens",
+                        "limit": null,
+                        "remaining": 16000,
+                        "resets_at": "2026-09-05T12:35:56+00:00"
+                    }
+                ]
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "Anthropic reports its buckets by header (`anthropic-ratelimit-input-tokens-remaining`), so hyphenated names are the ordinary case and not an edge one. The nulls are the point of the row: `input-tokens` sent no reset and `output-tokens` sent no limit, and the keys for those are ABSENT rather than zero. A backend cannot tell a quota of zero from a quota nobody reported if the bridge writes 0 for both.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.buckets": [
+                            "requests",
+                            "input-tokens",
+                            "output-tokens"
+                        ],
+                        "prism.rate_limit.input-tokens.limit": 80000,
+                        "prism.rate_limit.input-tokens.remaining": 79000,
+                        "prism.rate_limit.output-tokens.remaining": 16000,
+                        "prism.rate_limit.output-tokens.resets_at_unix": 1788611756,
+                        "prism.rate_limit.requests.limit": 1000,
+                        "prism.rate_limit.requests.remaining": 999,
+                        "prism.rate_limit.requests.resets_at_unix": 1788611696
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.buckets": [
+                            "requests",
+                            "input-tokens",
+                            "output-tokens"
+                        ],
+                        "prism.rate_limit.input-tokens.limit": 80000,
+                        "prism.rate_limit.input-tokens.remaining": 79000,
+                        "prism.rate_limit.output-tokens.remaining": 16000,
+                        "prism.rate_limit.output-tokens.resets_at_unix": 1788611756,
+                        "prism.rate_limit.requests.limit": 1000,
+                        "prism.rate_limit.requests.remaining": 999,
+                        "prism.rate_limit.requests.resets_at_unix": 1788611696
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.buckets": [
+                            "requests",
+                            "input-tokens",
+                            "output-tokens"
+                        ],
+                        "prism.rate_limit.input-tokens.limit": 80000,
+                        "prism.rate_limit.input-tokens.remaining": 79000,
+                        "prism.rate_limit.output-tokens.remaining": 16000,
+                        "prism.rate_limit.output-tokens.resets_at_unix": 1788611756,
+                        "prism.rate_limit.requests.limit": 1000,
+                        "prism.rate_limit.requests.remaining": 999,
+                        "prism.rate_limit.requests.resets_at_unix": 1788611696
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0016",
+            "title": "a provider that reported nothing, which is not a quota of zero",
+            "since": "0.1.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                },
+                "input": null,
+                "output": null,
+                "rate_limits": []
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "An EMPTY bucket list must produce no attribute at all -- not `prism.rate_limit.buckets: []`. Present-and-empty and absent are different values to a backend: the first says we asked and were told there is no quota, the second says nothing. This is not hypothetical noise-avoidance. Most of the reference providers pass `rateLimits: []`, and `prism-py` has no ProviderRateLimit type at all (G-15), so an empty list is the COMMON case in two of the three languages -- an empty array here would put a false claim on nearly every span they export.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0017",
+            "title": "bucket names the surface chose adversarially",
+            "since": "0.1.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                },
+                "input": null,
+                "output": null,
+                "rate_limits": [
+                    {
+                        "name": "tokens ",
+                        "limit": 1,
+                        "remaining": 1,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "tokens\n",
+                        "limit": 2,
+                        "remaining": 2,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "TOKENS",
+                        "limit": 3,
+                        "remaining": 3,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "tоkens",
+                        "limit": 4,
+                        "remaining": 4,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "a.b",
+                        "limit": 5,
+                        "remaining": 5,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "",
+                        "limit": 6,
+                        "remaining": 6,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "tokens",
+                        "limit": 7,
+                        "remaining": 7,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "tokens",
+                        "limit": 8,
+                        "remaining": 8,
+                        "resets_at": null
+                    }
+                ]
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "A bucket name is chosen by the PROVIDER and becomes part of an attribute KEY, which is the same shape as G-36: a name that arrives from outside deciding what a privileged surface is called. Six hostile spellings and one real bucket. `tokens ` and `tokens\n` are the exact G-33/G-36 shapes -- trailing whitespace defeating a comparison; `TOKENS` is a case fold that a case-insensitive backend would silently merge; the fourth is `tokens` with a CYRILLIC small o, which no reader can tell from the real one; `a.b` would forge a nested key (`prism.rate_limit.a.b.limit` reads as bucket `a`, field `b.limit`); the empty name would produce `prism.rate_limit..limit`. Every one is DROPPED rather than repaired, because repairing means normalising and normalising means two names can collapse onto one key -- at which point the hostile bucket overwrites the real one. The last two rows are the same name twice: FIRST wins, so a duplicate appended after the real bucket cannot overwrite its numbers.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.buckets": [
+                            "tokens"
+                        ],
+                        "prism.rate_limit.tokens.limit": 7,
+                        "prism.rate_limit.tokens.remaining": 7
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.buckets": [
+                            "tokens"
+                        ],
+                        "prism.rate_limit.tokens.limit": 7,
+                        "prism.rate_limit.tokens.remaining": 7
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.buckets": [
+                            "tokens"
+                        ],
+                        "prism.rate_limit.tokens.limit": 7,
+                        "prism.rate_limit.tokens.remaining": 7
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
+            ]
+        },
+        {
+            "id": "otel-0018",
+            "title": "more buckets than a span will carry",
+            "since": "0.1.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                },
+                "input": null,
+                "output": null,
+                "rate_limits": [
+                    {
+                        "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "limit": 1,
+                        "remaining": 1,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b00",
+                        "limit": 100,
+                        "remaining": 90,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b01",
+                        "limit": 101,
+                        "remaining": 91,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b02",
+                        "limit": 102,
+                        "remaining": 92,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b03",
+                        "limit": 103,
+                        "remaining": 93,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b04",
+                        "limit": 104,
+                        "remaining": 94,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b05",
+                        "limit": 105,
+                        "remaining": 95,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b06",
+                        "limit": 106,
+                        "remaining": 96,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b07",
+                        "limit": 107,
+                        "remaining": 97,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b08",
+                        "limit": 108,
+                        "remaining": 98,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b09",
+                        "limit": 109,
+                        "remaining": 99,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b10",
+                        "limit": 110,
+                        "remaining": 100,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b11",
+                        "limit": 111,
+                        "remaining": 101,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b12",
+                        "limit": 112,
+                        "remaining": 102,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b13",
+                        "limit": 113,
+                        "remaining": 103,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b14",
+                        "limit": 114,
+                        "remaining": 104,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b15",
+                        "limit": 115,
+                        "remaining": 105,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b16",
+                        "limit": 116,
+                        "remaining": 106,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b17",
+                        "limit": 117,
+                        "remaining": 107,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b18",
+                        "limit": 118,
+                        "remaining": 108,
+                        "resets_at": null
+                    },
+                    {
+                        "name": "b19",
+                        "limit": 119,
+                        "remaining": 109,
+                        "resets_at": null
+                    }
+                ]
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "The alphabet gate bounds what a key may LOOK like and not how many there are, so a provider returning well-formed names without limit would put one attribute key per name on every span it touches -- and backends index keys. Twenty-one buckets: the first has a 65-character name and is dropped for length alone (65 characters that are all in the alphabet, so this row asks the length question and nothing else), then twenty valid ones of which the first SIXTEEN are exported in the order given. The cap is on buckets accepted, not buckets seen, so a name that fails the alphabet cannot spend the budget.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.b00.limit": 100,
+                        "prism.rate_limit.b00.remaining": 90,
+                        "prism.rate_limit.b01.limit": 101,
+                        "prism.rate_limit.b01.remaining": 91,
+                        "prism.rate_limit.b02.limit": 102,
+                        "prism.rate_limit.b02.remaining": 92,
+                        "prism.rate_limit.b03.limit": 103,
+                        "prism.rate_limit.b03.remaining": 93,
+                        "prism.rate_limit.b04.limit": 104,
+                        "prism.rate_limit.b04.remaining": 94,
+                        "prism.rate_limit.b05.limit": 105,
+                        "prism.rate_limit.b05.remaining": 95,
+                        "prism.rate_limit.b06.limit": 106,
+                        "prism.rate_limit.b06.remaining": 96,
+                        "prism.rate_limit.b07.limit": 107,
+                        "prism.rate_limit.b07.remaining": 97,
+                        "prism.rate_limit.b08.limit": 108,
+                        "prism.rate_limit.b08.remaining": 98,
+                        "prism.rate_limit.b09.limit": 109,
+                        "prism.rate_limit.b09.remaining": 99,
+                        "prism.rate_limit.b10.limit": 110,
+                        "prism.rate_limit.b10.remaining": 100,
+                        "prism.rate_limit.b11.limit": 111,
+                        "prism.rate_limit.b11.remaining": 101,
+                        "prism.rate_limit.b12.limit": 112,
+                        "prism.rate_limit.b12.remaining": 102,
+                        "prism.rate_limit.b13.limit": 113,
+                        "prism.rate_limit.b13.remaining": 103,
+                        "prism.rate_limit.b14.limit": 114,
+                        "prism.rate_limit.b14.remaining": 104,
+                        "prism.rate_limit.b15.limit": 115,
+                        "prism.rate_limit.b15.remaining": 105,
+                        "prism.rate_limit.buckets": [
+                            "b00",
+                            "b01",
+                            "b02",
+                            "b03",
+                            "b04",
+                            "b05",
+                            "b06",
+                            "b07",
+                            "b08",
+                            "b09",
+                            "b10",
+                            "b11",
+                            "b12",
+                            "b13",
+                            "b14",
+                            "b15"
+                        ]
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.b00.limit": 100,
+                        "prism.rate_limit.b00.remaining": 90,
+                        "prism.rate_limit.b01.limit": 101,
+                        "prism.rate_limit.b01.remaining": 91,
+                        "prism.rate_limit.b02.limit": 102,
+                        "prism.rate_limit.b02.remaining": 92,
+                        "prism.rate_limit.b03.limit": 103,
+                        "prism.rate_limit.b03.remaining": 93,
+                        "prism.rate_limit.b04.limit": 104,
+                        "prism.rate_limit.b04.remaining": 94,
+                        "prism.rate_limit.b05.limit": 105,
+                        "prism.rate_limit.b05.remaining": 95,
+                        "prism.rate_limit.b06.limit": 106,
+                        "prism.rate_limit.b06.remaining": 96,
+                        "prism.rate_limit.b07.limit": 107,
+                        "prism.rate_limit.b07.remaining": 97,
+                        "prism.rate_limit.b08.limit": 108,
+                        "prism.rate_limit.b08.remaining": 98,
+                        "prism.rate_limit.b09.limit": 109,
+                        "prism.rate_limit.b09.remaining": 99,
+                        "prism.rate_limit.b10.limit": 110,
+                        "prism.rate_limit.b10.remaining": 100,
+                        "prism.rate_limit.b11.limit": 111,
+                        "prism.rate_limit.b11.remaining": 101,
+                        "prism.rate_limit.b12.limit": 112,
+                        "prism.rate_limit.b12.remaining": 102,
+                        "prism.rate_limit.b13.limit": 113,
+                        "prism.rate_limit.b13.remaining": 103,
+                        "prism.rate_limit.b14.limit": 114,
+                        "prism.rate_limit.b14.remaining": 104,
+                        "prism.rate_limit.b15.limit": 115,
+                        "prism.rate_limit.b15.remaining": 105,
+                        "prism.rate_limit.buckets": [
+                            "b00",
+                            "b01",
+                            "b02",
+                            "b03",
+                            "b04",
+                            "b05",
+                            "b06",
+                            "b07",
+                            "b08",
+                            "b09",
+                            "b10",
+                            "b11",
+                            "b12",
+                            "b13",
+                            "b14",
+                            "b15"
+                        ]
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN",
+                        "prism.rate_limit.b00.limit": 100,
+                        "prism.rate_limit.b00.remaining": 90,
+                        "prism.rate_limit.b01.limit": 101,
+                        "prism.rate_limit.b01.remaining": 91,
+                        "prism.rate_limit.b02.limit": 102,
+                        "prism.rate_limit.b02.remaining": 92,
+                        "prism.rate_limit.b03.limit": 103,
+                        "prism.rate_limit.b03.remaining": 93,
+                        "prism.rate_limit.b04.limit": 104,
+                        "prism.rate_limit.b04.remaining": 94,
+                        "prism.rate_limit.b05.limit": 105,
+                        "prism.rate_limit.b05.remaining": 95,
+                        "prism.rate_limit.b06.limit": 106,
+                        "prism.rate_limit.b06.remaining": 96,
+                        "prism.rate_limit.b07.limit": 107,
+                        "prism.rate_limit.b07.remaining": 97,
+                        "prism.rate_limit.b08.limit": 108,
+                        "prism.rate_limit.b08.remaining": 98,
+                        "prism.rate_limit.b09.limit": 109,
+                        "prism.rate_limit.b09.remaining": 99,
+                        "prism.rate_limit.b10.limit": 110,
+                        "prism.rate_limit.b10.remaining": 100,
+                        "prism.rate_limit.b11.limit": 111,
+                        "prism.rate_limit.b11.remaining": 101,
+                        "prism.rate_limit.b12.limit": 112,
+                        "prism.rate_limit.b12.remaining": 102,
+                        "prism.rate_limit.b13.limit": 113,
+                        "prism.rate_limit.b13.remaining": 103,
+                        "prism.rate_limit.b14.limit": 114,
+                        "prism.rate_limit.b14.remaining": 104,
+                        "prism.rate_limit.b15.limit": 115,
+                        "prism.rate_limit.b15.remaining": 105,
+                        "prism.rate_limit.buckets": [
+                            "b00",
+                            "b01",
+                            "b02",
+                            "b03",
+                            "b04",
+                            "b05",
+                            "b06",
+                            "b07",
+                            "b08",
+                            "b09",
+                            "b10",
+                            "b11",
+                            "b12",
+                            "b13",
+                            "b14",
+                            "b15"
+                        ]
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "span name",
+                "span status",
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons"
             ]
         }
     ]
