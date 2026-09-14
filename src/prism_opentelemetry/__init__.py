@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json as _json
 import math
 import time
@@ -21,6 +23,7 @@ __all__ = [
     "TelemetrySubscriber",
     "Tracer",
     "Usage",
+    "without_media_bytes",
 ]
 
 
@@ -359,7 +362,46 @@ class _Options:
     record_exceptions: bool = True
     max_content_length: int = 65_536
     capture_content: bool = False
+    capture_media: bool = False
     now: Callable[[], int] = field(default=lambda: time.time_ns())
+
+
+_MEDIA_KINDS = frozenset({"image", "audio", "video", "document"})
+
+
+def without_media_bytes(value: Any) -> Any:
+    """Captured content with media bytes taken out.
+
+    A media part is recognised by its serialized SHAPE: a ``kind`` of image,
+    audio, video or document beside a ``base64`` key, or, for the reference's
+    stored form from before prism v0.120.0, ``base64`` beside ``mime_type`` and
+    ``file_id``. Its bytes become ``base64: None`` plus ``omitted_bytes``, the
+    decoded size. The PHP and TypeScript bridges apply the same rule, pinned by
+    prism-parity's ``opentelemetry-media-content`` corpus.
+    """
+    if isinstance(value, list):
+        return [without_media_bytes(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+
+    out = {key: without_media_bytes(item) for key, item in value.items()}
+
+    kind = value.get("kind")
+    is_media = "base64" in value and (
+        kind in _MEDIA_KINDS
+        if isinstance(kind, str)
+        else kind is None and "mime_type" in value and "file_id" in value
+    )
+    encoded = value.get("base64")
+
+    if is_media and isinstance(encoded, str) and encoded != "":
+        out["base64"] = None
+        try:
+            out["omitted_bytes"] = len(base64.b64decode(encoded + "==", validate=False))
+        except binascii.Error:
+            out["omitted_bytes"] = 0
+
+    return out
 
 
 class TelemetrySubscriber:
@@ -376,6 +418,7 @@ class TelemetrySubscriber:
         max_content_length: int = 65_536,
         capture_content: bool = False,
         now: Callable[[], int] | None = None,
+        capture_media: bool = False,
     ) -> None:
         self._tracer = tracer
         self.store = store if store is not None else SpanStore()
@@ -386,6 +429,10 @@ class TelemetrySubscriber:
         #: application. One explicit switch, so nobody has to infer from three
         #: config keys whether content is leaving.
         self._capture_content = capture_content
+        #: Send media BYTES inside captured content. OFF BY DEFAULT: a serialized
+        #: message carries each attachment's bytes, and content capture was
+        #: understood to export text. See :func:`without_media_bytes`.
+        self._capture_media = capture_media
         self._now = now if now is not None else time.time_ns
 
     def on_generation_started(self, context: GenerationContext, input: Any = None) -> None:
@@ -655,7 +702,11 @@ class TelemetrySubscriber:
         if not self._capture_content or value is None:
             return
 
-        text = value if isinstance(value, str) else _json.dumps(value)
+        text = (
+            value
+            if isinstance(value, str)
+            else _json.dumps(value if self._capture_media else without_media_bytes(value))
+        )
         span.set_attribute(key, self._bounded(text))
 
         if mime_key is not None:

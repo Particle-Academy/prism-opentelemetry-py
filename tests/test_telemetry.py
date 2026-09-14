@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 from dataclasses import dataclass, field
 from typing import Any
@@ -365,3 +366,55 @@ def test_never_writes_tool_arguments_while_capture_is_off() -> None:
     # and it is not user content. The arguments are not.
     assert "search" in dumped
     assert "secret" not in dumped
+
+
+# -- media inside captured content --------------------------------------------
+
+_SECRET = base64.b64encode(b"SECRET-FILE-BYTES").decode("ascii")
+
+_MEDIA_INPUT = {
+    "messages": [
+        {
+            "type": "user",
+            "content": "What is in this?",
+            "additional_content": [
+                {
+                    "kind": "image",
+                    "url": None,
+                    "base64": _SECRET,
+                    "mime_type": "image/png",
+                    "file_id": None,
+                    "filename": None,
+                },
+                {"text": "What is in this?"},
+            ],
+        }
+    ]
+}
+
+
+def test_withholds_media_bytes_by_default_and_reports_their_size() -> None:
+    # Content capture was understood to export TEXT. A serialized message carries
+    # each attachment's bytes, so without this a span carried the user's file.
+    tracer = RecordingTracer()
+    TelemetrySubscriber(tracer, capture_content=True, now=clock()).on_generation_started(
+        CONTEXT, _MEDIA_INPUT
+    )
+
+    captured = str(tracer.spans[0].attributes[OpenInference.INPUT_VALUE])
+
+    assert "What is in this?" in captured
+    assert '"omitted_bytes":17' in captured.replace(" ", "")
+    assert _SECRET not in captured
+
+
+def test_sends_media_bytes_when_capture_media_is_on() -> None:
+    tracer = RecordingTracer()
+    TelemetrySubscriber(
+        tracer, capture_content=True, capture_media=True, now=clock()
+    ).on_generation_started(CONTEXT, _MEDIA_INPUT)
+
+    captured = str(tracer.spans[0].attributes[OpenInference.INPUT_VALUE])
+
+    assert _SECRET in captured
+    assert "omitted_bytes" not in captured

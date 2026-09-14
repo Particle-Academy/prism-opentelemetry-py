@@ -1,0 +1,145 @@
+{
+    "suite": "opentelemetry-media-content",
+    "schema_version": 1,
+    "corpus_version": "0.1.0",
+    "generated_by": "prism-parity:tools/record-media-content.php for php, tools/record-media-content.mjs for ts, tools/record_media_content.py for py. Every output is execution output, written into this file as text.",
+    "pins_note": "What captured content a span exports when it holds media: the media part keeps what identifies it, and its bytes become their size. A language that recognised a different shape, or measured bytes differently, would export an uploaded file from one runtime and not another, under the same configuration, with nothing to show which.",
+    "cases": [
+        {
+            "id": "med-0001",
+            "title": "an image part",
+            "since": "0.1.0",
+            "input": {"kind": "image", "url": null, "base64": "UE5HQllURVM=", "mime_type": "image/png", "file_id": null, "filename": "a.png"},
+            "output": {"php": "{\"kind\":\"image\",\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":\"a.png\",\"omitted_bytes\":8}", "ts": "{\"kind\":\"image\",\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":\"a.png\",\"omitted_bytes\":8}", "py": "{\"kind\":\"image\",\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":\"a.png\",\"omitted_bytes\":8}"},
+            "notes": "The control: the bytes become null, their decoded size is appended, and every other field survives in order.",
+            "agrees": true
+        },
+        {
+            "id": "med-0002",
+            "title": "a document inside a user message inside a payload",
+            "since": "0.1.0",
+            "input": {"messages": [{"type": "user", "content": "Read this", "additional_content": [{"kind": "document", "url": null, "base64": "VGhlIGJyaWVmLg==", "mime_type": "text/plain", "file_id": null, "filename": null, "document_title": "Brief", "chunks": null}, {"text": "Read this"}], "additional_attributes": {"turn": "1"}}]},
+            "output": {"php": "{\"messages\":[{\"type\":\"user\",\"content\":\"Read this\",\"additional_content\":[{\"kind\":\"document\",\"url\":null,\"base64\":null,\"mime_type\":\"text/plain\",\"file_id\":null,\"filename\":null,\"document_title\":\"Brief\",\"chunks\":null,\"omitted_bytes\":10},{\"text\":\"Read this\"}],\"additional_attributes\":{\"turn\":\"1\"}}]}", "ts": "{\"messages\":[{\"type\":\"user\",\"content\":\"Read this\",\"additional_content\":[{\"kind\":\"document\",\"url\":null,\"base64\":null,\"mime_type\":\"text/plain\",\"file_id\":null,\"filename\":null,\"document_title\":\"Brief\",\"chunks\":null,\"omitted_bytes\":10},{\"text\":\"Read this\"}],\"additional_attributes\":{\"turn\":\"1\"}}]}", "py": "{\"messages\":[{\"type\":\"user\",\"content\":\"Read this\",\"additional_content\":[{\"kind\":\"document\",\"url\":null,\"base64\":null,\"mime_type\":\"text/plain\",\"file_id\":null,\"filename\":null,\"document_title\":\"Brief\",\"chunks\":null,\"omitted_bytes\":10},{\"text\":\"Read this\"}],\"additional_attributes\":{\"turn\":\"1\"}}]}"},
+            "notes": "Where media actually sits in a captured request: nested two levels down, beside a text part that must be left exactly as it was.",
+            "agrees": true
+        },
+        {
+            "id": "med-0003",
+            "title": "the reference's stored shape from before prism v0.120.0",
+            "since": "0.1.0",
+            "input": {"url": null, "base64": "UE5HQllURVM=", "mime_type": "image/png", "file_id": null, "local_path": null, "storage_path": null, "filename": null},
+            "output": {"php": "{\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"local_path\":null,\"storage_path\":null,\"filename\":null,\"omitted_bytes\":8}", "ts": "{\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"local_path\":null,\"storage_path\":null,\"filename\":null,\"omitted_bytes\":8}", "py": "{\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"local_path\":null,\"storage_path\":null,\"filename\":null,\"omitted_bytes\":8}"},
+            "notes": "No kind at all. An application on an older prism still exports media in this shape, and a rule that required a kind would let its bytes through.",
+            "agrees": true
+        },
+        {
+            "id": "med-0004",
+            "title": "a media part whose kind is null",
+            "since": "0.1.0",
+            "input": {"kind": null, "url": null, "base64": "UE5HQllURVM=", "mime_type": "application/octet-stream", "file_id": null, "filename": null},
+            "output": {"php": "{\"kind\":null,\"url\":null,\"base64\":null,\"mime_type\":\"application/octet-stream\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":8}", "ts": "{\"kind\":null,\"url\":null,\"base64\":null,\"mime_type\":\"application/octet-stream\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":8}", "py": "{\"kind\":null,\"url\":null,\"base64\":null,\"mime_type\":\"application/octet-stream\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":8}"},
+            "notes": "A bare Media serialises with kind null. A null kind is not a kind that says 'not media', and a rule that read it that way would pass the bytes of every untyped attachment.",
+            "agrees": true
+        },
+        {
+            "id": "med-0005",
+            "title": "base64 that is only whitespace",
+            "since": "0.1.0",
+            "input": {"kind": "image", "url": null, "base64": "    ", "mime_type": "image/png", "file_id": null, "filename": null},
+            "output": {"php": "{\"kind\":\"image\",\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":0}", "ts": "{\"kind\":\"image\",\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":0}", "py": "{\"kind\":\"image\",\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":0}"},
+            "notes": "Padded: a non-empty string that decodes to nothing. Replaced, with a size of zero, rather than exported because it is not 'really' bytes.",
+            "agrees": true
+        },
+        {
+            "id": "med-0006",
+            "title": "base64 with no valid characters",
+            "since": "0.1.0",
+            "input": {"kind": "audio", "url": null, "base64": "!!!!", "mime_type": "audio/wav", "file_id": null, "filename": null},
+            "output": {"php": "{\"kind\":\"audio\",\"url\":null,\"base64\":null,\"mime_type\":\"audio/wav\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":0}", "ts": "{\"kind\":\"audio\",\"url\":null,\"base64\":null,\"mime_type\":\"audio/wav\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":0}", "py": "{\"kind\":\"audio\",\"url\":null,\"base64\":null,\"mime_type\":\"audio/wav\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":0}"},
+            "notes": "Malformed. Replaced all the same: what the field holds is not for telemetry to judge, and a decoder that raised here would take the span down with it.",
+            "agrees": true
+        },
+        {
+            "id": "med-0007",
+            "title": "base64 broken across lines",
+            "since": "0.1.0",
+            "input": {"kind": "image", "url": null, "base64": "UE5H\nQllURVM=", "mime_type": "image/png", "file_id": null, "filename": null},
+            "output": {"php": "{\"kind\":\"image\",\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":8}", "ts": "{\"kind\":\"image\",\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":8}", "py": "{\"kind\":\"image\",\"url\":null,\"base64\":null,\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":8}"},
+            "notes": "Line-wrapped the way MIME encoders produce it. All three lenient decoders skip the newline, so the reported size has to come out the same in each.",
+            "agrees": true
+        },
+        {
+            "id": "med-0008",
+            "title": "media nested in a list inside a list",
+            "since": "0.1.0",
+            "input": [[{"kind": "video", "url": null, "base64": "VklERU8=", "mime_type": "video/mp4", "file_id": null, "filename": null}]],
+            "output": {"php": "[[{\"kind\":\"video\",\"url\":null,\"base64\":null,\"mime_type\":\"video/mp4\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":5}]]", "ts": "[[{\"kind\":\"video\",\"url\":null,\"base64\":null,\"mime_type\":\"video/mp4\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":5}]]", "py": "[[{\"kind\":\"video\",\"url\":null,\"base64\":null,\"mime_type\":\"video/mp4\",\"file_id\":null,\"filename\":null,\"omitted_bytes\":5}]]"},
+            "notes": "Depth the rule has to reach. A walker that only looked one level down would export this.",
+            "agrees": true
+        },
+        {
+            "id": "med-0009",
+            "title": "a url part with no bytes",
+            "since": "0.1.0",
+            "input": {"kind": "image", "url": "https://example.com/a.png", "base64": null, "mime_type": null, "file_id": null, "filename": null},
+            "output": {"php": "{\"kind\":\"image\",\"url\":\"https://example.com/a.png\",\"base64\":null,\"mime_type\":null,\"file_id\":null,\"filename\":null}", "ts": "{\"kind\":\"image\",\"url\":\"https://example.com/a.png\",\"base64\":null,\"mime_type\":null,\"file_id\":null,\"filename\":null}", "py": "{\"kind\":\"image\",\"url\":\"https://example.com/a.png\",\"base64\":null,\"mime_type\":null,\"file_id\":null,\"filename\":null}"},
+            "notes": "Nothing to withhold, so nothing changes, and no size appears for bytes that were never there.",
+            "agrees": true
+        },
+        {
+            "id": "med-0010",
+            "title": "empty base64",
+            "since": "0.1.0",
+            "input": {"kind": "image", "url": null, "base64": "", "mime_type": "image/png", "file_id": null, "filename": null},
+            "output": {"php": "{\"kind\":\"image\",\"url\":null,\"base64\":\"\",\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null}", "ts": "{\"kind\":\"image\",\"url\":null,\"base64\":\"\",\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null}", "py": "{\"kind\":\"image\",\"url\":null,\"base64\":\"\",\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null}"},
+            "notes": "Unchanged. An empty string carries no bytes, and reporting a size of zero for it would be noise.",
+            "agrees": true
+        },
+        {
+            "id": "med-0011",
+            "title": "a tool result that happens to have a base64 key",
+            "since": "0.1.0",
+            "input": {"base64": "aGVsbG8=", "encoding": "base64"},
+            "output": {"php": "{\"base64\":\"aGVsbG8=\",\"encoding\":\"base64\"}", "ts": "{\"base64\":\"aGVsbG8=\",\"encoding\":\"base64\"}", "py": "{\"base64\":\"aGVsbG8=\",\"encoding\":\"base64\"}"},
+            "notes": "Not media. Only a media SHAPE is rewritten; a tool's own payload is never changed on a guess, because a telemetry layer that edited arbitrary tool output would be misreporting what the tool returned.",
+            "agrees": true
+        },
+        {
+            "id": "med-0012",
+            "title": "a kind no Prism media carries",
+            "since": "0.1.0",
+            "input": {"kind": "spreadsheet", "url": null, "base64": "aGVsbG8=", "mime_type": "text/csv", "file_id": null, "filename": null},
+            "output": {"php": "{\"kind\":\"spreadsheet\",\"url\":null,\"base64\":\"aGVsbG8=\",\"mime_type\":\"text/csv\",\"file_id\":null,\"filename\":null}", "ts": "{\"kind\":\"spreadsheet\",\"url\":null,\"base64\":\"aGVsbG8=\",\"mime_type\":\"text/csv\",\"file_id\":null,\"filename\":null}", "py": "{\"kind\":\"spreadsheet\",\"url\":null,\"base64\":\"aGVsbG8=\",\"mime_type\":\"text/csv\",\"file_id\":null,\"filename\":null}"},
+            "notes": "Unchanged, and a stated limit rather than a pass: the rule recognises the four kinds Prism produces. Bytes under any other kind are exported, in all three languages.",
+            "agrees": true
+        },
+        {
+            "id": "med-0013",
+            "title": "a kind spelled with a homoglyph",
+            "since": "0.1.0",
+            "input": {"kind": "іmage", "url": null, "base64": "UE5HQllURVM=", "mime_type": "image/png", "file_id": null, "filename": null},
+            "output": {"php": "{\"kind\":\"іmage\",\"url\":null,\"base64\":\"UE5HQllURVM=\",\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null}", "ts": "{\"kind\":\"іmage\",\"url\":null,\"base64\":\"UE5HQllURVM=\",\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null}", "py": "{\"kind\":\"іmage\",\"url\":null,\"base64\":\"UE5HQllURVM=\",\"mime_type\":\"image/png\",\"file_id\":null,\"filename\":null}"},
+            "notes": "A homoglyph, Cyrillic i. Unchanged in all three, the same limit as med-0012: an attacker who controls a serialised part can name it past the rule. Prism never emits this, so what the row pins is that no language quietly normalises it into a match where another does not.",
+            "agrees": true
+        },
+        {
+            "id": "med-0014",
+            "title": "a message whose text contains base64",
+            "since": "0.1.0",
+            "input": {"type": "user", "content": "UE5HQllURVM=", "additional_content": [{"text": "UE5HQllURVM="}], "additional_attributes": {"turn": "1"}},
+            "output": {"php": "{\"type\":\"user\",\"content\":\"UE5HQllURVM=\",\"additional_content\":[{\"text\":\"UE5HQllURVM=\"}],\"additional_attributes\":{\"turn\":\"1\"}}", "ts": "{\"type\":\"user\",\"content\":\"UE5HQllURVM=\",\"additional_content\":[{\"text\":\"UE5HQllURVM=\"}],\"additional_attributes\":{\"turn\":\"1\"}}", "py": "{\"type\":\"user\",\"content\":\"UE5HQllURVM=\",\"additional_content\":[{\"text\":\"UE5HQllURVM=\"}],\"additional_attributes\":{\"turn\":\"1\"}}"},
+            "notes": "Unchanged. Text is content, and capture_content decides it. Bytes pasted into a prompt as text are exported, and the rule does not pretend otherwise.",
+            "agrees": true
+        },
+        {
+            "id": "med-0015",
+            "title": "a document carried as chunks",
+            "since": "0.1.0",
+            "input": {"kind": "document", "url": null, "base64": null, "mime_type": null, "file_id": null, "filename": null, "document_title": "Chunked", "chunks": ["First.", "Second."]},
+            "output": {"php": "{\"kind\":\"document\",\"url\":null,\"base64\":null,\"mime_type\":null,\"file_id\":null,\"filename\":null,\"document_title\":\"Chunked\",\"chunks\":[\"First.\",\"Second.\"]}", "ts": "{\"kind\":\"document\",\"url\":null,\"base64\":null,\"mime_type\":null,\"file_id\":null,\"filename\":null,\"document_title\":\"Chunked\",\"chunks\":[\"First.\",\"Second.\"]}", "py": "{\"kind\":\"document\",\"url\":null,\"base64\":null,\"mime_type\":null,\"file_id\":null,\"filename\":null,\"document_title\":\"Chunked\",\"chunks\":[\"First.\",\"Second.\"]}"},
+            "notes": "Chunks are text, so they are content, not bytes. Unchanged.",
+            "agrees": true
+        }
+    ],
+    "divergence_note": "All fifteen rows agree, on the first run. That is recorded rather than celebrated: this is a rule written the same day in three languages by the same author, so agreement says the three implementations match each other, not that the rule is right. What the rows establish is narrower and checkable. The same four kinds, the older kindless shape and a null kind are all recognised; the decoded size comes out identical, including for padded, malformed and line-wrapped base64; and nothing that is not a media shape is rewritten. Rows med-0012, med-0013 and med-0014 are LIMITS, pinned so no language quietly widens its own rule: bytes under an unknown or homoglyph kind, or pasted into a prompt as text, are exported in all three."
+}
