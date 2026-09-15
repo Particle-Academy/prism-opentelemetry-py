@@ -69,9 +69,23 @@ attributes, on success as well as on failure.
 
 ## Parity
 
-prism-parity's `opentelemetry-span-attributes` and `opentelemetry-media-content`
-corpora pin the attributes and the media-byte rule against the PHP reference
-and the TypeScript port.
+prism-parity's `opentelemetry-media-content` corpus pins the media-byte rule,
+and all three languages agree on it.
+
+Its `opentelemetry-span-attributes` corpus does not agree yet. Rate-limit
+attributes are identical in PHP, TypeScript and Python. These still differ:
+
+- the operation name and span name, which the PHP reference maps onto the GenAI
+  vocabulary and the ports pass through;
+- the span kind for image and stream operations;
+- the status of a successful span, unset in PHP and `ok` in the ports;
+- `gen_ai.response.finish_reasons`;
+- captured content, which Python encodes with spaces after separators and
+  escaped non-ASCII;
+- where truncation cuts a long value.
+
+Spans from a PHP application and a Python agent in the same trace show those
+differences.
 
 ## License
 
