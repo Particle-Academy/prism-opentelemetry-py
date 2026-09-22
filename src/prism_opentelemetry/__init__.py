@@ -41,8 +41,22 @@ class GenAi:
     OPERATION_NAME = "gen_ai.operation.name"
     REQUEST_MODEL = "gen_ai.request.model"
     RESPONSE_FINISH_REASONS = "gen_ai.response.finish_reasons"
+    # INCLUDES CACHED TOKENS, by the convention's wording: it "SHOULD include
+    # all types of input tokens, including cached tokens". Prism's
+    # prompt_tokens is the other way round -- normalised to EXCLUDE them -- so
+    # this attribute is the sum, not the field. Reconciled in `_apply_usage`.
     USAGE_INPUT_TOKENS = "gen_ai.usage.input_tokens"
     USAGE_OUTPUT_TOKENS = "gen_ai.usage.output_tokens"
+    # Checked 2026-09-21 against the LIVE registry, which is now
+    # `open-telemetry/semantic-conventions-genai`: the gen_ai.* attributes
+    # moved there and read "deprecated" in the original repo, which describes
+    # the move rather than a rename. It matters for one of these -- the old
+    # page spells cache writes `cache_creation`, the live registry
+    # `cache_write` and carries no `cache_creation` at all. The wrong one is
+    # invisible to every backend.
+    USAGE_CACHE_READ_INPUT_TOKENS = "gen_ai.usage.cache_read.input_tokens"
+    USAGE_CACHE_WRITE_INPUT_TOKENS = "gen_ai.usage.cache_write.input_tokens"
+    USAGE_REASONING_OUTPUT_TOKENS = "gen_ai.usage.reasoning.output_tokens"
     TOOL_NAME = "gen_ai.tool.name"
     TOOL_CALL_ID = "gen_ai.tool.call.id"
     # Prism-specific, namespaced so they cannot collide with semconv.
@@ -153,6 +167,13 @@ class OpenInference:
     TOKEN_COUNT_PROMPT = "llm.token_count.prompt"
     TOKEN_COUNT_COMPLETION = "llm.token_count.completion"
     TOKEN_COUNT_TOTAL = "llm.token_count.total"
+    # SUB-COUNTS of TOKEN_COUNT_PROMPT, in the spec's own words: "they are
+    # already included in it". Prism's prompt_tokens excludes them, so the
+    # prompt attribute has to be the sum before these are emitted beside it --
+    # otherwise the span publishes a part larger than its whole.
+    TOKEN_COUNT_PROMPT_DETAILS_CACHE_READ = "llm.token_count.prompt_details.cache_read"
+    TOKEN_COUNT_PROMPT_DETAILS_CACHE_WRITE = "llm.token_count.prompt_details.cache_write"
+    TOKEN_COUNT_COMPLETION_DETAILS_REASONING = "llm.token_count.completion_details.reasoning"
     INPUT_VALUE = "input.value"
     INPUT_MIME_TYPE = "input.mime_type"
     OUTPUT_VALUE = "output.value"
@@ -316,6 +337,12 @@ class GenerationContext:
 class Usage:
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
+    #: Prompt tokens served from the provider's cache. NOT inside prompt_tokens.
+    cache_read_input_tokens: int | None = None
+    #: Prompt tokens written to the provider's cache. NOT inside prompt_tokens.
+    cache_write_input_tokens: int | None = None
+    #: Reasoning tokens. Already inside completion_tokens, as providers report it.
+    thought_tokens: int | None = None
     cost: float | None = None
 
 
@@ -591,17 +618,52 @@ class TelemetrySubscriber:
         if usage is None:
             return
 
-        if usage.prompt_tokens is not None:
-            span.set_attribute(GenAi.USAGE_INPUT_TOKENS, usage.prompt_tokens)
-            span.set_attribute(OpenInference.TOKEN_COUNT_PROMPT, usage.prompt_tokens)
+        # EVERY TOKEN THAT WENT IN, which is not what prompt_tokens is. Prism
+        # normalises that field to exclude cache traffic and both conventions
+        # define their input count to include it, so the reconciliation happens
+        # once, here. A cached Anthropic turn reported 922 where 35,600 went in
+        # -- a cost view built on it under-reports ~97% on exactly the workload
+        # caching exists for. Reported as prism-opentelemetry#1.
+        prompt = (
+            None
+            if usage.prompt_tokens is None
+            else usage.prompt_tokens
+            + (usage.cache_read_input_tokens or 0)
+            + (usage.cache_write_input_tokens or 0)
+        )
+
+        if prompt is not None:
+            span.set_attribute(GenAi.USAGE_INPUT_TOKENS, prompt)
+            span.set_attribute(OpenInference.TOKEN_COUNT_PROMPT, prompt)
 
         if usage.completion_tokens is not None:
             span.set_attribute(GenAi.USAGE_OUTPUT_TOKENS, usage.completion_tokens)
             span.set_attribute(OpenInference.TOKEN_COUNT_COMPLETION, usage.completion_tokens)
 
-        if usage.prompt_tokens is not None and usage.completion_tokens is not None:
+        if prompt is not None and usage.completion_tokens is not None:
+            span.set_attribute(OpenInference.TOKEN_COUNT_TOTAL, prompt + usage.completion_tokens)
+
+        # NONE IS NOT ZERO here either: an unreported field makes "this
+        # provider has no prompt caching" indistinguishable from "the cache
+        # never hit".
+        if usage.cache_read_input_tokens is not None:
+            span.set_attribute(GenAi.USAGE_CACHE_READ_INPUT_TOKENS, usage.cache_read_input_tokens)
             span.set_attribute(
-                OpenInference.TOKEN_COUNT_TOTAL, usage.prompt_tokens + usage.completion_tokens
+                OpenInference.TOKEN_COUNT_PROMPT_DETAILS_CACHE_READ,
+                usage.cache_read_input_tokens,
+            )
+
+        if usage.cache_write_input_tokens is not None:
+            span.set_attribute(GenAi.USAGE_CACHE_WRITE_INPUT_TOKENS, usage.cache_write_input_tokens)
+            span.set_attribute(
+                OpenInference.TOKEN_COUNT_PROMPT_DETAILS_CACHE_WRITE,
+                usage.cache_write_input_tokens,
+            )
+
+        if usage.thought_tokens is not None:
+            span.set_attribute(GenAi.USAGE_REASONING_OUTPUT_TOKENS, usage.thought_tokens)
+            span.set_attribute(
+                OpenInference.TOKEN_COUNT_COMPLETION_DETAILS_REASONING, usage.thought_tokens
             )
 
         # NONE IS NOT ZERO. Not every provider reports a cost, and writing 0

@@ -418,3 +418,64 @@ def test_sends_media_bytes_when_capture_media_is_on() -> None:
 
     assert _SECRET in captured
     assert "omitted_bytes" not in captured
+
+
+def test_counts_cached_prompt_tokens_as_input_and_breaks_them_out() -> None:
+    # prism-opentelemetry#1. Three of Usage's five token fields were dropped
+    # entirely, and the input count excluded the cache while both conventions
+    # define it to INCLUDE the cache. The numbers are the reporter's: a turn
+    # where 35,600 tokens went in and the span said 922. A cost view reading
+    # that under-reports ~97% on exactly the workload caching exists for, and
+    # quietly, because 922 is plausible for a short question.
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, now=clock())
+
+    subscriber.on_generation_started(CONTEXT)
+    subscriber.on_generation_completed(
+        "trace-1",
+        usage=Usage(
+            prompt_tokens=922,
+            completion_tokens=210,
+            cache_read_input_tokens=34_678,
+            cache_write_input_tokens=0,
+            thought_tokens=64,
+        ),
+    )
+
+    attributes = tracer.spans[0].attributes
+
+    # 922 + 34,678. The sum, not the field.
+    assert attributes[GenAi.USAGE_INPUT_TOKENS] == 35_600
+    assert attributes[GenAi.USAGE_OUTPUT_TOKENS] == 210
+    assert attributes[GenAi.USAGE_CACHE_READ_INPUT_TOKENS] == 34_678
+    assert attributes[GenAi.USAGE_CACHE_WRITE_INPUT_TOKENS] == 0
+    assert attributes[GenAi.USAGE_REASONING_OUTPUT_TOKENS] == 64
+
+    assert attributes[OpenInference.TOKEN_COUNT_PROMPT] == 35_600
+    assert attributes[OpenInference.TOKEN_COUNT_COMPLETION] == 210
+    # Was 1,132: the total inherited the gap and compounded it.
+    assert attributes[OpenInference.TOKEN_COUNT_TOTAL] == 35_810
+    assert attributes[OpenInference.TOKEN_COUNT_PROMPT_DETAILS_CACHE_READ] == 34_678
+    assert attributes[OpenInference.TOKEN_COUNT_PROMPT_DETAILS_CACHE_WRITE] == 0
+    assert attributes[OpenInference.TOKEN_COUNT_COMPLETION_DETAILS_REASONING] == 64
+
+
+def test_leaves_the_cache_attributes_off_a_provider_that_reports_none() -> None:
+    # The control, and not cosmetic: 0 for an unreported field would make "no
+    # prompt caching on this provider" indistinguishable from "the cache never
+    # hit". It also keeps every existing corpus row byte-identical.
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, now=clock())
+
+    subscriber.on_generation_started(CONTEXT)
+    subscriber.on_generation_completed(
+        "trace-1", usage=Usage(prompt_tokens=10, completion_tokens=5)
+    )
+
+    attributes = tracer.spans[0].attributes
+
+    assert attributes[GenAi.USAGE_INPUT_TOKENS] == 10
+    assert attributes[OpenInference.TOKEN_COUNT_TOTAL] == 15
+    assert GenAi.USAGE_CACHE_READ_INPUT_TOKENS not in attributes
+    assert GenAi.USAGE_REASONING_OUTPUT_TOKENS not in attributes
+    assert OpenInference.TOKEN_COUNT_PROMPT_DETAILS_CACHE_READ not in attributes
