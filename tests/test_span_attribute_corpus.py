@@ -28,12 +28,14 @@ from typing import Any
 import pytest
 
 from prism_opentelemetry import (
+    AdvertisedTool,
     GenAi,
     GenerationContext,
     RateLimit,
     SpanStore,
     TelemetrySubscriber,
     Usage,
+    advertised_tool_digest,
 )
 
 _CORPUS_PATH = Path(__file__).parent / "fixtures" / "opentelemetry-span-attributes.json"
@@ -114,6 +116,26 @@ def record(entry: dict[str, Any]) -> dict[str, Any]:
             user_id=g["user_id"],
         ),
         g["input"],
+        # Absent stays absent: a row with no  key must produce a span with
+        # no tool attributes, which is a different assertion from a row carrying
+        # an empty list. The DIGEST is computed here from the declaration the row
+        # supplies, never copied from it -- that is what makes the digest a
+        # compared value rather than a fixture echoed back.
+        None
+        if g.get("tools") is None
+        else [
+            AdvertisedTool(
+                name=tool["name"],
+                digest=advertised_tool_digest(
+                    name=tool["name"],
+                    description=tool.get("description") or "",
+                    parameters=tool.get("parameters") or {},
+                ),
+                description=tool.get("description"),
+                parameters=tool.get("parameters"),
+            )
+            for tool in g["tools"]
+        ],
     )
 
     usage = (
@@ -122,6 +144,12 @@ def record(entry: dict[str, Any]) -> dict[str, Any]:
         else Usage(
             prompt_tokens=g["usage"]["prompt_tokens"],
             completion_tokens=g["usage"]["completion_tokens"],
+            # Optional in the fixture: rows predating cache reporting carry no
+            # such keys, and None is how the port is told a provider reported
+            # nothing -- which is NOT the same as zero.
+            cache_read_input_tokens=g["usage"].get("cache_read_input_tokens"),
+            cache_write_input_tokens=g["usage"].get("cache_write_input_tokens"),
+            thought_tokens=g["usage"].get("thought_tokens"),
             cost=g["usage"]["cost"],
         )
     )
@@ -158,7 +186,7 @@ def rate_limit_attributes_of(attributes: dict[str, Any]) -> dict[str, Any]:
 
 
 def test_is_the_whole_suite_not_a_subset_someone_trimmed_to_green() -> None:
-    assert len(CORPUS["cases"]) == 18
+    assert len(CORPUS["cases"]) == 23
 
 
 @pytest.mark.parametrize("entry", CORPUS["cases"], ids=lambda e: e["id"])

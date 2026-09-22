@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 import json as _json
 import math
 import time
@@ -24,6 +25,7 @@ __all__ = [
     "TelemetrySubscriber",
     "Tracer",
     "Usage",
+    "advertised_tool_digest",
     "without_media_bytes",
 ]
 
@@ -390,6 +392,72 @@ class AdvertisedTool:
     digest: str
     description: str | None = None
     parameters: Any = None
+
+
+def _canonical(value: Any) -> Any:
+    """Sort every map key, at every depth, leaving lists in their order.
+
+    A digest is only comparable if two languages building the same tool produce
+    the same bytes, and map iteration order is an implementation detail in all
+    three. Sorting makes it not one.
+
+    LISTS ARE NOT SORTED, and that is the distinction the whole thing turns on:
+    ``required: ["b","a"]`` is a different JSON Schema from
+    ``required: ["a","b"]``, and reordering it here would give two genuinely
+    different tools one digest. Only a map's KEY ORDER is meaningless.
+    """
+    if isinstance(value, list):
+        return [_canonical(item) for item in value]
+
+    if isinstance(value, dict):
+        return {key: _canonical(value[key]) for key in sorted(value)}
+
+    return value
+
+
+def advertised_tool_digest(
+    name: str, description: str | None = None, parameters: Any = None
+) -> str:
+    """The fingerprint of a tool's declaration, computed as the reference computes it.
+
+    WHY THIS EXISTS. The digest is on a span to be compared ACROSS services, and
+    for a while this package only ACCEPTED one -- so a Python service and a PHP
+    service instrumenting the same agent emitted whatever digest each caller had
+    invented, and a comparison of them meant nothing. An attribute that is not
+    comparable across services is not doing the one job it has.
+
+    NAME, DESCRIPTION AND PARAMETERS, because all three are in the prefix a
+    provider caches. A digest over the name alone would answer "was this tool
+    present", which the name already answers; the question worth asking is "did
+    what this tool claims to do change", and a rewritten description moves the
+    cached prefix without moving any name.
+
+    AN ABSENT PARAMETER MAP IS ``{}``, NOT ``[]``. That is not a stylistic
+    choice: PHP cannot tell an empty map from an empty list, and the reference
+    shipped a version hashing ``[]`` here -- making the digest for the commonest
+    tool shape there is unreproducible outside PHP. Fixed in
+    particle-academy/prism 0.124.1.
+
+    NOT AN MCP TRUST PIN. ``prism-mcp`` hashes a tool definition too, for a
+    different question over different inputs. The two WILL differ, and comparing
+    them produces a confident wrong conclusion.
+    """
+    canonical = _canonical(
+        {
+            "name": name,
+            "description": description or "",
+            "parameters": parameters if parameters is not None else {},
+        }
+    )
+
+    # separators and ensure_ascii are BOTH load-bearing. Python's defaults put a
+    # space after every separator and escape non-ASCII, and either one would
+    # produce different bytes -- and therefore a different digest -- from the
+    # same tool in the other two languages. That exact pair is already finding
+    # (5) in this suite's register, for captured content.
+    encoded = _json.dumps(canonical, separators=(",", ":"), ensure_ascii=False)
+
+    return "sha256:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True)

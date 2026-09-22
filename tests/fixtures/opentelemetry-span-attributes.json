@@ -101,10 +101,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -253,10 +253,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "openinference.span.kind"
+                "openinference.span.kind",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -349,11 +349,11 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
                 "gen_ai.response.finish_reasons",
-                "openinference.span.kind"
+                "openinference.span.kind",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -446,10 +446,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -548,10 +548,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -647,10 +647,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -743,10 +743,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -839,10 +839,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -943,11 +943,11 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
                 "gen_ai.response.finish_reasons",
-                "input.value"
+                "input.value",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -1048,11 +1048,11 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
                 "gen_ai.response.finish_reasons",
-                "input.value"
+                "input.value",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -1153,11 +1153,11 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
                 "gen_ai.response.finish_reasons",
-                "input.value"
+                "input.value",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -1254,12 +1254,12 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
                 "gen_ai.response.finish_reasons",
                 "input.mime_type",
-                "input.value"
+                "input.value",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -1377,10 +1377,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -1528,10 +1528,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -1624,10 +1624,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -1784,10 +1784,10 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         },
         {
@@ -2157,10 +2157,577 @@
             },
             "agrees": false,
             "disagrees_on": [
-                "span name",
-                "span status",
                 "gen_ai.operation.name",
-                "gen_ai.response.finish_reasons"
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
+            ]
+        },
+        {
+            "id": "otel-0019",
+            "title": "a cached turn, where the input count is not the prompt field",
+            "since": "0.2.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "input": null,
+                "output": null,
+                "rate_limits": null,
+                "usage": {
+                    "prompt_tokens": 922,
+                    "completion_tokens": 210,
+                    "cache_read_input_tokens": 34678,
+                    "cache_write_input_tokens": 0,
+                    "thought_tokens": 64,
+                    "cost": null
+                }
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "The consumer-reported defect, as numbers. Both conventions define their input count as the WHOLE prompt side with the cache already inside it, and Prism normalises promptTokens to EXCLUDE it, so the input attributes must be 922 + 34678 = 35600 and the OpenInference total 35810. Before the fix all three languages exported 922 and 1132, agreeing with each other and with nothing true -- which is why this row could not have found it and exists only to stop it coming back. A cost view built on the old numbers read about 97% low on exactly the workload prompt caching exists for.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.cache_read.input_tokens": 34678,
+                        "gen_ai.usage.cache_write.input_tokens": 0,
+                        "gen_ai.usage.input_tokens": 35600,
+                        "gen_ai.usage.output_tokens": 210,
+                        "gen_ai.usage.reasoning.output_tokens": 64,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 210,
+                        "llm.token_count.completion_details.reasoning": 64,
+                        "llm.token_count.prompt": 35600,
+                        "llm.token_count.prompt_details.cache_read": 34678,
+                        "llm.token_count.prompt_details.cache_write": 0,
+                        "llm.token_count.total": 35810,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.cache_read.input_tokens": 34678,
+                        "gen_ai.usage.cache_write.input_tokens": 0,
+                        "gen_ai.usage.input_tokens": 35600,
+                        "gen_ai.usage.output_tokens": 210,
+                        "gen_ai.usage.reasoning.output_tokens": 64,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 210,
+                        "llm.token_count.completion_details.reasoning": 64,
+                        "llm.token_count.prompt": 35600,
+                        "llm.token_count.prompt_details.cache_read": 34678,
+                        "llm.token_count.prompt_details.cache_write": 0,
+                        "llm.token_count.total": 35810,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.cache_read.input_tokens": 34678,
+                        "gen_ai.usage.cache_write.input_tokens": 0,
+                        "gen_ai.usage.input_tokens": 35600,
+                        "gen_ai.usage.output_tokens": 210,
+                        "gen_ai.usage.reasoning.output_tokens": 64,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 210,
+                        "llm.token_count.completion_details.reasoning": 64,
+                        "llm.token_count.prompt": 35600,
+                        "llm.token_count.prompt_details.cache_read": 34678,
+                        "llm.token_count.prompt_details.cache_write": 0,
+                        "llm.token_count.total": 35810,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
+            ]
+        },
+        {
+            "id": "otel-0020",
+            "title": "a provider that reports no caching at all",
+            "since": "0.2.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "input": null,
+                "output": null,
+                "rate_limits": null,
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                }
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "The control for otel-0019, and not cosmetic. Emitting 0 for an unreported field would make \"this provider has no prompt caching\" indistinguishable from \"the cache never hit\", which is a question somebody reads these attributes to answer. It also pins that the fix left every pre-existing row byte-identical: this span must carry exactly the attributes it carried before cache reporting existed.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "openinference.span.kind": "CHAIN"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
+            ]
+        },
+        {
+            "id": "otel-0021",
+            "title": "the tool set a model was offered, with the content gate shut",
+            "since": "0.2.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "input": null,
+                "output": null,
+                "rate_limits": null,
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                },
+                "tools": [
+                    {
+                        "name": "search",
+                        "description": "Search the docs",
+                        "parameters": {
+                            "query": {
+                                "type": "string",
+                                "description": "What to look for"
+                            }
+                        }
+                    },
+                    {
+                        "name": "write",
+                        "description": "Write a file",
+                        "parameters": {}
+                    }
+                ]
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "A provider caches a prompt PREFIX and the tool array is part of it, so a consumer explaining a cache miss needs the tool set -- and needs it with capture OFF, because that is the state every production span is exported in. Names and digests must be present here and descriptions and schemas must NOT: the row asserts both halves of that split at once. THE DIGEST IS COMPUTED BY EACH LANGUAGE from the declaration this row supplies, never copied from it, which is what makes the digest a compared value.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "llm.tools.0.tool.name": "search",
+                        "llm.tools.1.tool.name": "write",
+                        "openinference.span.kind": "CHAIN",
+                        "prism.tools.0.digest": "sha256:4049ebaabfa5e0775edd54fc17b9df1c78a1fe51e63e9a00eb46ea08b9b4a511",
+                        "prism.tools.1.digest": "sha256:184a4a8f872a711c9fa21807655aebf78cb69cb5adb2d119091e930c57c3374e"
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "llm.tools.0.tool.name": "search",
+                        "llm.tools.1.tool.name": "write",
+                        "openinference.span.kind": "CHAIN",
+                        "prism.tools.0.digest": "sha256:4049ebaabfa5e0775edd54fc17b9df1c78a1fe51e63e9a00eb46ea08b9b4a511",
+                        "prism.tools.1.digest": "sha256:184a4a8f872a711c9fa21807655aebf78cb69cb5adb2d119091e930c57c3374e"
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "llm.tools.0.tool.name": "search",
+                        "llm.tools.1.tool.name": "write",
+                        "openinference.span.kind": "CHAIN",
+                        "prism.tools.0.digest": "sha256:4049ebaabfa5e0775edd54fc17b9df1c78a1fe51e63e9a00eb46ea08b9b4a511",
+                        "prism.tools.1.digest": "sha256:184a4a8f872a711c9fa21807655aebf78cb69cb5adb2d119091e930c57c3374e"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
+            ]
+        },
+        {
+            "id": "otel-0022",
+            "title": "the same tools in a different order, which is a different cached prefix",
+            "since": "0.2.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "input": null,
+                "output": null,
+                "rate_limits": null,
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                },
+                "tools": [
+                    {
+                        "name": "zebra",
+                        "description": "Last alphabetically, first in the array",
+                        "parameters": {}
+                    },
+                    {
+                        "name": "alpha",
+                        "description": "First alphabetically, last in the array",
+                        "parameters": {}
+                    }
+                ]
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "A provider caches the tools array AS SERIALISED, so the same tools in a different order is a different prefix and a cache miss. This row is the guard against the fix that feels most natural: sorting the names for stable comparison, which is the reflex in a repository built on canonical ordering, and which would make exactly this case invisible -- reporting an unchanged tool set for a turn that actually missed. The index in llm.tools.<i> is what carries the order, so llm.tools.0.tool.name must be zebra in every language.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "llm.tools.0.tool.name": "zebra",
+                        "llm.tools.1.tool.name": "alpha",
+                        "openinference.span.kind": "CHAIN",
+                        "prism.tools.0.digest": "sha256:12e22678d682a9a5ff7325b32dc3ff933a035cbe181eeeb3b3a462a4f1c950f7",
+                        "prism.tools.1.digest": "sha256:68a5050930be1c42eb0a2a1a8823169c848073e0423cdf6e73a0116b876b0367"
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "llm.tools.0.tool.name": "zebra",
+                        "llm.tools.1.tool.name": "alpha",
+                        "openinference.span.kind": "CHAIN",
+                        "prism.tools.0.digest": "sha256:12e22678d682a9a5ff7325b32dc3ff933a035cbe181eeeb3b3a462a4f1c950f7",
+                        "prism.tools.1.digest": "sha256:68a5050930be1c42eb0a2a1a8823169c848073e0423cdf6e73a0116b876b0367"
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "llm.tools.0.tool.name": "zebra",
+                        "llm.tools.1.tool.name": "alpha",
+                        "openinference.span.kind": "CHAIN",
+                        "prism.tools.0.digest": "sha256:12e22678d682a9a5ff7325b32dc3ff933a035cbe181eeeb3b3a462a4f1c950f7",
+                        "prism.tools.1.digest": "sha256:68a5050930be1c42eb0a2a1a8823169c848073e0423cdf6e73a0116b876b0367"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
+            ]
+        },
+        {
+            "id": "otel-0023",
+            "title": "a tool with no parameters, where PHP cannot tell an empty map from an empty list",
+            "since": "0.2.0",
+            "generation": {
+                "operation": "text",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "session_id": null,
+                "user_id": null,
+                "finish_reason": "stop",
+                "input": null,
+                "output": null,
+                "rate_limits": null,
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": null
+                },
+                "tools": [
+                    {
+                        "name": "ping",
+                        "description": "Take no arguments at all",
+                        "parameters": {}
+                    }
+                ]
+            },
+            "capture_content": false,
+            "max_content_length": 65536,
+            "notes": "THE ROW THAT EXPOSES prism#58. The reference digests parametersAsArray(), which is [] for a tool with no parameters, and PHP encodes an empty array as a JSON LIST -- so `parameters` changes JSON TYPE with its contents and the digest becomes a PHP-ism no other language reproduces. This is finding F-3 in a new place. It matters because the digest exists to be compared ACROSS services: two services instrumenting one agent would disagree about whether the tool set changed, silently, in the direction that reports a change where none happened. A tool with no parameters is also the commonest tool shape there is, so this is not an edge case. Until the reference substitutes an object for an empty map AND both ports export a matching digest helper, this row disagrees -- which is the point of writing it before the fix.",
+            "spans": {
+                "php": {
+                    "name": "chat claude-sonnet-4-5",
+                    "status": "unset",
+                    "attributes": {
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "Stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "llm.tools.0.tool.name": "ping",
+                        "openinference.span.kind": "CHAIN",
+                        "prism.tools.0.digest": "sha256:141c202abb08c97535901f980a81224fb348ceb6e951137318a81882a04e96c9"
+                    }
+                },
+                "ts": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "llm.tools.0.tool.name": "ping",
+                        "openinference.span.kind": "CHAIN",
+                        "prism.tools.0.digest": "sha256:141c202abb08c97535901f980a81224fb348ceb6e951137318a81882a04e96c9"
+                    }
+                },
+                "py": {
+                    "name": "text claude-sonnet-4-5",
+                    "status": "ok",
+                    "attributes": {
+                        "gen_ai.operation.name": "text",
+                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.response.finish_reasons": [
+                            "stop"
+                        ],
+                        "gen_ai.system": "anthropic",
+                        "gen_ai.usage.input_tokens": 10,
+                        "gen_ai.usage.output_tokens": 5,
+                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.provider": "anthropic",
+                        "llm.system": "anthropic",
+                        "llm.token_count.completion": 5,
+                        "llm.token_count.prompt": 10,
+                        "llm.token_count.total": 15,
+                        "llm.tools.0.tool.name": "ping",
+                        "openinference.span.kind": "CHAIN",
+                        "prism.tools.0.digest": "sha256:141c202abb08c97535901f980a81224fb348ceb6e951137318a81882a04e96c9"
+                    }
+                }
+            },
+            "agrees": false,
+            "disagrees_on": [
+                "gen_ai.operation.name",
+                "gen_ai.response.finish_reasons",
+                "span name",
+                "span status"
             ]
         }
     ]
