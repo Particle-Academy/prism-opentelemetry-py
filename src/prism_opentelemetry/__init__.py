@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Any, Protocol
 
 __all__ = [
+    "AdvertisedTool",
     "GenAi",
     "GenerationContext",
     "OpenInference",
@@ -57,6 +58,13 @@ class GenAi:
     USAGE_CACHE_READ_INPUT_TOKENS = "gen_ai.usage.cache_read.input_tokens"
     USAGE_CACHE_WRITE_INPUT_TOKENS = "gen_ai.usage.cache_write.input_tokens"
     USAGE_REASONING_OUTPUT_TOKENS = "gen_ai.usage.reasoning.output_tokens"
+    # CUSTOM, because neither registry carries a tool-definition fingerprint:
+    # OpenInference has name/description/json_schema and no digest, and the
+    # GenAI registry has no tool attributes at all. Checked 2026-09-21. Indexed
+    # to line up with llm.tools.<i>. NOT an MCP trust pin -- different question,
+    # different inputs, and comparing them gives a confident wrong answer.
+    TOOLS_PREFIX = "prism.tools."
+    TOOL_FIELD_DIGEST = "digest"
     TOOL_NAME = "gen_ai.tool.name"
     TOOL_CALL_ID = "gen_ai.tool.call.id"
     # Prism-specific, namespaced so they cannot collide with semconv.
@@ -174,6 +182,14 @@ class OpenInference:
     TOKEN_COUNT_PROMPT_DETAILS_CACHE_READ = "llm.token_count.prompt_details.cache_read"
     TOKEN_COUNT_PROMPT_DETAILS_CACHE_WRITE = "llm.token_count.prompt_details.cache_write"
     TOKEN_COUNT_COMPLETION_DETAILS_REASONING = "llm.token_count.completion_details.reasoning"
+    # Flattened BY INDEX, which is the standard own shape and is what preserves
+    # ORDER without a list attribute to invent or a sorting decision to get
+    # wrong. A provider caches the tools array as serialised, so the same tools
+    # reordered is a different prefix and a cache miss; a sorted set hides that.
+    TOOLS_PREFIX = "llm.tools."
+    TOOL_FIELD_NAME = "tool.name"
+    TOOL_FIELD_DESCRIPTION = "tool.description"
+    TOOL_FIELD_JSON_SCHEMA = "tool.json_schema"
     INPUT_VALUE = "input.value"
     INPUT_MIME_TYPE = "input.mime_type"
     OUTPUT_VALUE = "output.value"
@@ -333,6 +349,49 @@ class GenerationContext:
     user_id: str | None = None
 
 
+#: At most this many tools reach a span, and this much of a name.
+#:
+#: The attribute KEY carries an index, so an unbounded tool list is an unbounded
+#: key space -- the hazard RATE_LIMIT_MAX_BUCKETS exists for, by another route.
+#: And a tool name is not always the application's own: an MCP client builds
+#: tools from a REMOTE server's advertised definitions, and since names are
+#: exported ungated they ride every span rather than only captured ones.
+#:
+#: Separate from max_content_length, which an operator raises to see more of a
+#: PROMPT. A name is not content and has no reason to follow that dial.
+MAX_TOOLS = 64
+MAX_TOOL_NAME_CHARS = 512
+
+
+@dataclass(frozen=True)
+class AdvertisedTool:
+    """A tool the model was offered.
+
+    ``name`` and ``digest`` are METADATA -- authored by the application,
+    carrying nothing the user wrote and nothing the model returned -- so they
+    are exported whatever ``capture_content`` says. They answer "did the tool
+    set change between these two turns", which is what somebody asks when a
+    provider's prompt cache missed and the bill went up. That question gets
+    asked in production, and production is exactly where the content gate is
+    off.
+
+    ``description`` and ``parameters`` are the tool's DECLARATION. A description
+    is instructions to a model, so they are exported only under
+    ``capture_content``, and may simply be left out.
+
+    ORDER IS PART OF THE VALUE. A provider caches the tools array as serialised,
+    so the same tools in a different order is a different prefix and a cache
+    miss. Pass them in the order they were sent and do NOT sort: the attributes
+    are flattened by index, and a sorted list would report an unchanged tool set
+    for a turn that actually missed.
+    """
+
+    name: str
+    digest: str
+    description: str | None = None
+    parameters: Any = None
+
+
 @dataclass(frozen=True)
 class Usage:
     prompt_tokens: int | None = None
@@ -462,7 +521,12 @@ class TelemetrySubscriber:
         self._capture_media = capture_media
         self._now = now if now is not None else time.time_ns
 
-    def on_generation_started(self, context: GenerationContext, input: Any = None) -> None:
+    def on_generation_started(
+        self,
+        context: GenerationContext,
+        input: Any = None,
+        tools: Sequence[AdvertisedTool] | None = None,
+    ) -> None:
         start = self._now()
         span = self._tracer.start_span(
             f"{context.operation} {context.model}", start_time_nanos=start, parent=None
@@ -482,8 +546,55 @@ class TelemetrySubscriber:
         if context.user_id is not None:
             span.set_attribute(OpenInference.USER_ID, context.user_id)
 
+        self._apply_tools(span, tools)
         self._capture(span, OpenInference.INPUT_VALUE, input, OpenInference.INPUT_MIME_TYPE)
         self.store.start(context.trace_id, span, start)
+
+    def _apply_tools(self, span: Span, tools: Sequence[AdvertisedTool] | None) -> None:
+        """The tool set, in two halves that answer two questions.
+
+        Flattened BY INDEX -- ``llm.tools.0.tool.name`` -- which is
+        OpenInference's own shape and is why order survives without a list
+        attribute to invent or a sorting decision to get wrong.
+
+        Bounded, because a tool name is not necessarily the application's own:
+        an MCP client builds tools from a REMOTE server's advertised
+        definitions, and this runs on every generation rather than only under
+        capture, so one long name would ride every span in the system. The name
+        cap is separate from ``max_content_length``, which exists so an operator
+        can see more of a PROMPT.
+        """
+        if tools is None:
+            return
+
+        for index, tool in enumerate(list(tools)[:MAX_TOOLS]):
+            span.set_attribute(
+                f"{OpenInference.TOOLS_PREFIX}{index}.{OpenInference.TOOL_FIELD_NAME}",
+                tool.name[:MAX_TOOL_NAME_CHARS],
+            )
+            span.set_attribute(
+                f"{GenAi.TOOLS_PREFIX}{index}.{GenAi.TOOL_FIELD_DIGEST}",
+                tool.digest,
+            )
+
+            # The declaration half. `_capture` is the gate, so a caller that
+            # always supplies descriptions still gets none on the span while
+            # capture_content is off.
+            if tool.description is not None:
+                self._capture(
+                    span,
+                    f"{OpenInference.TOOLS_PREFIX}{index}.{OpenInference.TOOL_FIELD_DESCRIPTION}",
+                    tool.description,
+                    None,
+                )
+
+            if tool.parameters is not None:
+                self._capture(
+                    span,
+                    f"{OpenInference.TOOLS_PREFIX}{index}.{OpenInference.TOOL_FIELD_JSON_SCHEMA}",
+                    tool.parameters,
+                    None,
+                )
 
     def on_step_completed(
         self,

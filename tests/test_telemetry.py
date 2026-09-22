@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from prism_opentelemetry import (
+    AdvertisedTool,
     GenAi,
     GenerationContext,
     OpenInference,
@@ -479,3 +480,101 @@ def test_leaves_the_cache_attributes_off_a_provider_that_reports_none() -> None:
     assert GenAi.USAGE_CACHE_READ_INPUT_TOKENS not in attributes
     assert GenAi.USAGE_REASONING_OUTPUT_TOKENS not in attributes
     assert OpenInference.TOKEN_COUNT_PROMPT_DETAILS_CACHE_READ not in attributes
+
+
+ADVERTISED_TOOLS = [
+    AdvertisedTool("search", "sha256:aaa", "Search the docs", {"q": "string"}),
+    AdvertisedTool("write", "sha256:bbb", "Write a file", {}),
+]
+
+
+def test_exports_tool_names_and_digests_with_capture_off() -> None:
+    # prism-opentelemetry#2. A provider caches a prompt PREFIX and the tool
+    # array is part of it, so a consumer explaining a cache miss needs the tool
+    # set. Names and digests are metadata -- authored by the application,
+    # carrying nothing the user wrote -- so they travel ungated, and they have
+    # to: the question is asked in production and production is where the gate
+    # is off.
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, now=clock())
+
+    subscriber.on_generation_started(CONTEXT, {"prompt": "a secret"}, ADVERTISED_TOOLS)
+
+    attributes = tracer.spans[0].attributes
+
+    assert attributes["llm.tools.0.tool.name"] == "search"
+    assert attributes["llm.tools.1.tool.name"] == "write"
+    assert attributes["prism.tools.0.digest"] == "sha256:aaa"
+    assert attributes["prism.tools.1.digest"] == "sha256:bbb"
+
+    # Both halves matter: the names arrived AND the declarations did not.
+    assert "llm.tools.0.tool.description" not in attributes
+    assert "llm.tools.0.tool.json_schema" not in attributes
+    assert OpenInference.INPUT_VALUE not in attributes
+
+
+def test_keeps_the_tool_order_because_a_reorder_is_a_cache_miss() -> None:
+    # A provider caches the array AS SERIALISED, so the same tools reordered is
+    # a different prefix. The index carries that; sorting -- the reflex, since a
+    # set feels more canonical -- would report an unchanged tool set for a turn
+    # that actually missed.
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, now=clock())
+
+    subscriber.on_generation_started(
+        CONTEXT,
+        None,
+        [AdvertisedTool("zebra", "sha256:z"), AdvertisedTool("alpha", "sha256:a")],
+    )
+
+    attributes = tracer.spans[0].attributes
+
+    assert attributes["llm.tools.0.tool.name"] == "zebra"
+    assert attributes["llm.tools.1.tool.name"] == "alpha"
+
+
+def test_adds_the_declarations_only_when_capture_is_on() -> None:
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, now=clock(), capture_content=True)
+
+    subscriber.on_generation_started(CONTEXT, None, ADVERTISED_TOOLS)
+
+    attributes = tracer.spans[0].attributes
+
+    assert attributes["llm.tools.0.tool.name"] == "search"
+    assert attributes["llm.tools.0.tool.description"] == "Search the docs"
+    assert isinstance(attributes["llm.tools.0.tool.json_schema"], str)
+
+
+def test_caps_a_hostile_tool_name_and_the_tool_count() -> None:
+    # A tool name is not always ours: an MCP client builds tools from a REMOTE
+    # server's advertised definitions, and these ride EVERY span because they
+    # are ungated.
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, now=clock())
+
+    subscriber.on_generation_started(
+        CONTEXT,
+        None,
+        [AdvertisedTool("x" * 5000, f"sha256:{i}") for i in range(100)],
+    )
+
+    attributes = tracer.spans[0].attributes
+    names = [key for key in attributes if key.endswith(".tool.name")]
+
+    assert len(names) == 64
+    assert len(attributes["llm.tools.0.tool.name"]) == 512
+
+
+def test_writes_no_tool_attributes_when_there_are_none() -> None:
+    # The control. Without it the tests above pass against code that writes a
+    # tool attribute unconditionally, and every embeddings span carries one.
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, now=clock())
+
+    subscriber.on_generation_started(CONTEXT)
+
+    keys = list(tracer.spans[0].attributes)
+
+    assert [key for key in keys if key.startswith("llm.tools.")] == []
+    assert [key for key in keys if key.startswith("prism.tools.")] == []
