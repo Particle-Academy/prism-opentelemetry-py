@@ -500,6 +500,11 @@ def test_exports_tool_names_and_digests_with_capture_off() -> None:
 
     subscriber.on_generation_started(CONTEXT, {"prompt": "a secret"}, ADVERTISED_TOOLS)
 
+    # Completed, because the tool attributes are written when the span ENDS,
+    # not when it starts -- an SDK drops attributes past its ceiling silently,
+    # so the tool list goes last and only its tail is ever lost.
+    subscriber.on_generation_completed("trace-1")
+
     attributes = tracer.spans[0].attributes
 
     assert attributes["llm.tools.0.tool.name"] == "search"
@@ -527,6 +532,11 @@ def test_keeps_the_tool_order_because_a_reorder_is_a_cache_miss() -> None:
         [AdvertisedTool("zebra", "sha256:z"), AdvertisedTool("alpha", "sha256:a")],
     )
 
+    # Completed, because the tool attributes are written when the span ENDS,
+    # not when it starts -- an SDK drops attributes past its ceiling silently,
+    # so the tool list goes last and only its tail is ever lost.
+    subscriber.on_generation_completed("trace-1")
+
     attributes = tracer.spans[0].attributes
 
     assert attributes["llm.tools.0.tool.name"] == "zebra"
@@ -538,6 +548,11 @@ def test_adds_the_declarations_only_when_capture_is_on() -> None:
     subscriber = TelemetrySubscriber(tracer, now=clock(), capture_content=True)
 
     subscriber.on_generation_started(CONTEXT, None, ADVERTISED_TOOLS)
+
+    # Completed, because the tool attributes are written when the span ENDS,
+    # not when it starts -- an SDK drops attributes past its ceiling silently,
+    # so the tool list goes last and only its tail is ever lost.
+    subscriber.on_generation_completed("trace-1")
 
     attributes = tracer.spans[0].attributes
 
@@ -558,6 +573,11 @@ def test_caps_a_hostile_tool_name_and_the_tool_count() -> None:
         None,
         [AdvertisedTool("x" * 5000, f"sha256:{i}") for i in range(100)],
     )
+
+    # Completed, because the tool attributes are written when the span ENDS,
+    # not when it starts -- an SDK drops attributes past its ceiling silently,
+    # so the tool list goes last and only its tail is ever lost.
+    subscriber.on_generation_completed("trace-1")
 
     attributes = tracer.spans[0].attributes
     names = [key for key in attributes if key.endswith(".tool.name")]

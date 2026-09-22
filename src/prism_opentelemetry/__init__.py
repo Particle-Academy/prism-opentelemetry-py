@@ -262,6 +262,26 @@ class SpanStore:
         self._boundaries: dict[str, int] = {}
         self._step_spans: dict[str, dict[int, Span]] = {}
         self._tools: dict[str, list[PendingTool]] = {}
+        #: The tool attributes a generation advertised, held until the span ends.
+        #:
+        #: NOT written when they arrive, which is the whole reason this exists.
+        #: An OpenTelemetry SDK caps a span's attributes -- 128 by default in
+        #: several implementations -- and drops the excess SILENTLY. A tool list
+        #: is two attributes per tool, four under capture, so written at START a
+        #: generation offering 31 tools filled the span before anything about
+        #: the OUTCOME of the call had been set, and a consumer saw roots
+        #: carrying a model and a tool list and nothing else, with no error.
+        #:
+        #: Held here and written LAST, the same truncation costs the END OF THE
+        #: TOOL LIST instead of the result of the call. Both are lossy at the
+        #: limit; only one of them is legible.
+        self._advertised_tools: dict[str, dict[str, Any]] = {}
+
+    def hold_advertised_tools(self, trace_id: str, attributes: dict[str, Any]) -> None:
+        self._advertised_tools[trace_id] = attributes
+
+    def take_advertised_tools(self, trace_id: str) -> dict[str, Any]:
+        return self._advertised_tools.pop(trace_id, {})
 
     def start(self, trace_id: str, span: Span, start_nanos: int) -> None:
         self._roots[trace_id] = span
@@ -331,6 +351,11 @@ class SpanStore:
         self._boundaries.pop(trace_id, None)
         self._step_spans.pop(trace_id, None)
         self._tools.pop(trace_id, None)
+        # take_advertised_tools already clears these on the normal path. Cleared
+        # here too because a generation that never completes would otherwise
+        # leave its tool list behind -- in a long-lived worker that is an
+        # unbounded hold on every generation it ever saw.
+        self._advertised_tools.pop(trace_id, None)
 
     @property
     def size(self) -> int:
@@ -614,12 +639,21 @@ class TelemetrySubscriber:
         if context.user_id is not None:
             span.set_attribute(OpenInference.USER_ID, context.user_id)
 
-        self._apply_tools(span, tools)
+        # HELD, NOT WRITTEN. An SDK caps a span's attributes and drops the
+        # excess silently, and a tool list is two per tool -- four under
+        # capture. Written here, a generation offering 31 tools filled the span
+        # before usage, finish reason and output were ever set.
+        self.store.hold_advertised_tools(context.trace_id, self._tool_attributes(tools))
         self._capture(span, OpenInference.INPUT_VALUE, input, OpenInference.INPUT_MIME_TYPE)
         self.store.start(context.trace_id, span, start)
 
-    def _apply_tools(self, span: Span, tools: Sequence[AdvertisedTool] | None) -> None:
+    def _tool_attributes(self, tools: Sequence[AdvertisedTool] | None) -> dict[str, Any]:
         """The tool set, in two halves that answer two questions.
+
+        Built but NOT written: the caller decides when these land, which is the
+        whole of the fix for the attribute ceiling. At start they starved the
+        span of its own outcome; at the end they are merely the first thing
+        truncated.
 
         Flattened BY INDEX -- ``llm.tools.0.tool.name`` -- which is
         OpenInference's own shape and is why order survives without a list
@@ -632,37 +666,39 @@ class TelemetrySubscriber:
         cap is separate from ``max_content_length``, which exists so an operator
         can see more of a PROMPT.
         """
+        attributes: dict[str, Any] = {}
+
         if tools is None:
-            return
+            return attributes
 
         for index, tool in enumerate(list(tools)[:MAX_TOOLS]):
-            span.set_attribute(
-                f"{OpenInference.TOOLS_PREFIX}{index}.{OpenInference.TOOL_FIELD_NAME}",
-                tool.name[:MAX_TOOL_NAME_CHARS],
+            attributes[f"{OpenInference.TOOLS_PREFIX}{index}.{OpenInference.TOOL_FIELD_NAME}"] = (
+                tool.name[:MAX_TOOL_NAME_CHARS]
             )
-            span.set_attribute(
-                f"{GenAi.TOOLS_PREFIX}{index}.{GenAi.TOOL_FIELD_DIGEST}",
-                tool.digest,
-            )
+            attributes[f"{GenAi.TOOLS_PREFIX}{index}.{GenAi.TOOL_FIELD_DIGEST}"] = tool.digest
 
-            # The declaration half. `_capture` is the gate, so a caller that
-            # always supplies descriptions still gets none on the span while
-            # capture_content is off.
+            # The declaration half stays behind the content gate, so a caller
+            # that always supplies descriptions still gets none while
+            # capture_content is off. Checked here rather than through
+            # `_capture`, because these are buffered rather than written -- but
+            # the gate and the ruler are the same.
+            if not self._capture_content:
+                continue
+
             if tool.description is not None:
-                self._capture(
-                    span,
-                    f"{OpenInference.TOOLS_PREFIX}{index}.{OpenInference.TOOL_FIELD_DESCRIPTION}",
-                    tool.description,
-                    None,
-                )
+                attributes[
+                    f"{OpenInference.TOOLS_PREFIX}{index}.{OpenInference.TOOL_FIELD_DESCRIPTION}"
+                ] = self._bounded(tool.description)
 
             if tool.parameters is not None:
-                self._capture(
-                    span,
-                    f"{OpenInference.TOOLS_PREFIX}{index}.{OpenInference.TOOL_FIELD_JSON_SCHEMA}",
-                    tool.parameters,
-                    None,
+                encoded = _json.dumps(
+                    tool.parameters if self._capture_media else without_media_bytes(tool.parameters)
                 )
+                attributes[
+                    f"{OpenInference.TOOLS_PREFIX}{index}.{OpenInference.TOOL_FIELD_JSON_SCHEMA}"
+                ] = self._bounded(encoded)
+
+        return attributes
 
     def on_step_completed(
         self,
@@ -736,9 +772,20 @@ class TelemetrySubscriber:
         self._apply_rate_limits(span, rate_limits)
         self._capture(span, OpenInference.OUTPUT_VALUE, output, OpenInference.OUTPUT_MIME_TYPE)
 
+        # LAST, DELIBERATELY. Everything above is a handful of attributes and
+        # is what somebody reads to answer "what did this cost" and "did it
+        # finish". Whichever is written last is what disappears on a long tool
+        # list, and this is the order in which that is survivable.
+        self._write_held_tools(span, trace_id)
+
         span.set_status("ok")
         span.end(self._now())
         self.store.forget(trace_id)
+
+    def _write_held_tools(self, span: Span, trace_id: str) -> None:
+        """Write the tool attributes held since the generation started."""
+        for key, value in self.store.take_advertised_tools(trace_id).items():
+            span.set_attribute(key, value)
 
     def on_generation_failed(self, trace_id: str, error: BaseException) -> None:
         span = self.store.span(trace_id)
@@ -756,6 +803,11 @@ class TelemetrySubscriber:
 
         if self._record_exceptions:
             span.record_exception(error)
+
+        # A failed generation carries its tool list too, and last for the same
+        # reason: the status, the exception and the quota buckets are what a
+        # reader came for.
+        self._write_held_tools(span, trace_id)
 
         span.set_status("error", str(error))
         span.end(self._now())
