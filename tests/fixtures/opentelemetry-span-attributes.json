@@ -266,7 +266,7 @@
             "generation": {
                 "operation": "stream",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -284,18 +284,18 @@
             "notes": "Streaming is a transport, not a different operation, and a reader grouping spans by operation should not see a fourth category appear because the caller streamed.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 12,
                         "gen_ai.usage.output_tokens": 30,
-                        "llm.model_name": "claude-sonnet-4",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 30,
@@ -305,18 +305,18 @@
                     }
                 },
                 "ts": {
-                    "name": "stream claude-sonnet-4",
+                    "name": "stream claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "stream",
-                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 12,
                         "gen_ai.usage.output_tokens": 30,
-                        "llm.model_name": "claude-sonnet-4",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 30,
@@ -326,18 +326,18 @@
                     }
                 },
                 "py": {
-                    "name": "stream claude-sonnet-4",
+                    "name": "stream claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "stream",
-                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 12,
                         "gen_ai.usage.output_tokens": 30,
-                        "llm.model_name": "claude-sonnet-4",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 30,
@@ -459,7 +459,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4",
+                "model": "claude-sonnet-5-5",
                 "session_id": "session-9",
                 "user_id": "user-7",
                 "finish_reason": "stop",
@@ -477,18 +477,18 @@
             "notes": "These two are the join keys a dashboard groups a conversation by. A language that spelled either differently would render one user's session as two.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 1,
                         "gen_ai.usage.output_tokens": 1,
-                        "llm.model_name": "claude-sonnet-4",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 1,
@@ -500,18 +500,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 1,
                         "gen_ai.usage.output_tokens": 1,
-                        "llm.model_name": "claude-sonnet-4",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 1,
@@ -523,18 +523,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 1,
                         "gen_ai.usage.output_tokens": 1,
-                        "llm.model_name": "claude-sonnet-4",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 1,
@@ -1269,7 +1269,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -1294,18 +1294,18 @@
             "notes": "The control for the rate-limit rows. One bucket with all three fields, so the attribute NAMES are pinned before anything harder is asked. The OpenTelemetry GenAI conventions define nothing for rate limits or quota -- checked against the gen_ai and http attribute registries on 2026-09-05, where the closest thing anywhere in semconv is the generic opt-in `http.response.header.<key>` capture -- so `prism.rate_limit.*` is a CUSTOM name, deliberately outside `gen_ai.` rather than squatting inside it. If this row ever disagrees, an operator reading a Phoenix dashboard is looking at two different keys for one number.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1321,18 +1321,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1348,18 +1348,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1390,7 +1390,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -1427,18 +1427,18 @@
             "notes": "Anthropic reports its buckets by header (`anthropic-ratelimit-input-tokens-remaining`), so hyphenated names are the ordinary case and not an edge one. The nulls are the point of the row: `input-tokens` sent no reset and `output-tokens` sent no limit, and the keys for those are ABSENT rather than zero. A backend cannot tell a quota of zero from a quota nobody reported if the bridge writes 0 for both.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1460,18 +1460,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1493,18 +1493,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1541,7 +1541,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -1559,18 +1559,18 @@
             "notes": "An EMPTY bucket list must produce no attribute at all -- not `prism.rate_limit.buckets: []`. Present-and-empty and absent are different values to a backend: the first says we asked and were told there is no quota, the second says nothing. This is not hypothetical noise-avoidance. Most of the reference providers pass `rateLimits: []`, and `prism-py` has no ProviderRateLimit type at all (G-15), so an empty list is the COMMON case in two of the three languages -- an empty array here would put a false claim on nearly every span they export.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1580,18 +1580,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1601,18 +1601,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1637,7 +1637,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -1704,18 +1704,18 @@
             "notes": "A bucket name is chosen by the PROVIDER and becomes part of an attribute KEY, which is the same shape as G-36: a name that arrives from outside deciding what a privileged surface is called. Six hostile spellings and one real bucket. `tokens ` and `tokens\n` are the exact G-33/G-36 shapes -- trailing whitespace defeating a comparison; `TOKENS` is a case fold that a case-insensitive backend would silently merge; the fourth is `tokens` with a CYRILLIC small o, which no reader can tell from the real one; `a.b` would forge a nested key (`prism.rate_limit.a.b.limit` reads as bucket `a`, field `b.limit`); the empty name would produce `prism.rate_limit..limit`. Every one is DROPPED rather than repaired, because repairing means normalising and normalising means two names can collapse onto one key -- at which point the hostile bucket overwrites the real one. The last two rows are the same name twice: FIRST wins, so a duplicate appended after the real bucket cannot overwrite its numbers.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1730,18 +1730,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1756,18 +1756,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -1797,7 +1797,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -1942,18 +1942,18 @@
             "notes": "The alphabet gate bounds what a key may LOOK like and not how many there are, so a provider returning well-formed names without limit would put one attribute key per name on every span it touches -- and backends index keys. Twenty-one buckets: the first has a 65-character name and is dropped for length alone (65 characters that are all in the alphabet, so this row asks the length question and nothing else), then twenty valid ones of which the first SIXTEEN are exported in the order given. The cap is on buckets accepted, not buckets seen, so a name that fails the alphabet cannot spend the budget.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2013,18 +2013,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2084,18 +2084,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2170,7 +2170,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -2191,11 +2191,11 @@
             "notes": "The consumer-reported defect, as numbers. Both conventions define their input count as the WHOLE prompt side with the cache already inside it, and Prism normalises promptTokens to EXCLUDE it, so the input attributes must be 922 + 34678 = 35600 and the OpenInference total 35810. Before the fix all three languages exported 922 and 1132, agreeing with each other and with nothing true -- which is why this row could not have found it and exists only to stop it coming back. A cost view built on the old numbers read about 97% low on exactly the workload prompt caching exists for.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
@@ -2205,7 +2205,7 @@
                         "gen_ai.usage.input_tokens": 35600,
                         "gen_ai.usage.output_tokens": 210,
                         "gen_ai.usage.reasoning.output_tokens": 64,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 210,
@@ -2218,11 +2218,11 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
@@ -2232,7 +2232,7 @@
                         "gen_ai.usage.input_tokens": 35600,
                         "gen_ai.usage.output_tokens": 210,
                         "gen_ai.usage.reasoning.output_tokens": 64,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 210,
@@ -2245,11 +2245,11 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
@@ -2259,7 +2259,7 @@
                         "gen_ai.usage.input_tokens": 35600,
                         "gen_ai.usage.output_tokens": 210,
                         "gen_ai.usage.reasoning.output_tokens": 64,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 210,
@@ -2287,7 +2287,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -2305,18 +2305,18 @@
             "notes": "The control for otel-0019, and not cosmetic. Emitting 0 for an unreported field would make \"this provider has no prompt caching\" indistinguishable from \"the cache never hit\", which is a question somebody reads these attributes to answer. It also pins that the fix left every pre-existing row byte-identical: this span must carry exactly the attributes it carried before cache reporting existed.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2326,18 +2326,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2347,18 +2347,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2383,7 +2383,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -2418,18 +2418,18 @@
             "notes": "A provider caches a prompt PREFIX and the tool array is part of it, so a consumer explaining a cache miss needs the tool set -- and needs it with capture OFF, because that is the state every production span is exported in. Names and digests must be present here and descriptions and schemas must NOT: the row asserts both halves of that split at once. THE DIGEST IS COMPUTED BY EACH LANGUAGE from the declaration this row supplies, never copied from it, which is what makes the digest a compared value.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2443,18 +2443,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2468,18 +2468,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2508,7 +2508,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -2538,18 +2538,18 @@
             "notes": "A provider caches the tools array AS SERIALISED, so the same tools in a different order is a different prefix and a cache miss. This row is the guard against the fix that feels most natural: sorting the names for stable comparison, which is the reflex in a repository built on canonical ordering, and which would make exactly this case invisible -- reporting an unchanged tool set for a turn that actually missed. The index in llm.tools.<i> is what carries the order, so llm.tools.0.tool.name must be zebra in every language.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2563,18 +2563,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2588,18 +2588,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2628,7 +2628,7 @@
             "generation": {
                 "operation": "text",
                 "provider": "anthropic",
-                "model": "claude-sonnet-4-5",
+                "model": "claude-sonnet-5-5",
                 "session_id": null,
                 "user_id": null,
                 "finish_reason": "stop",
@@ -2653,18 +2653,18 @@
             "notes": "THE ROW THAT EXPOSES prism#58. The reference digests parametersAsArray(), which is [] for a tool with no parameters, and PHP encodes an empty array as a JSON LIST -- so `parameters` changes JSON TYPE with its contents and the digest becomes a PHP-ism no other language reproduces. This is finding F-3 in a new place. It matters because the digest exists to be compared ACROSS services: two services instrumenting one agent would disagree about whether the tool set changed, silently, in the direction that reports a change where none happened. A tool with no parameters is also the commonest tool shape there is, so this is not an edge case. Until the reference substitutes an object for an empty map AND both ports export a matching digest helper, this row disagrees -- which is the point of writing it before the fix.",
             "spans": {
                 "php": {
-                    "name": "chat claude-sonnet-4-5",
+                    "name": "chat claude-sonnet-5-5",
                     "status": "unset",
                     "attributes": {
                         "gen_ai.operation.name": "chat",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "Stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2676,18 +2676,18 @@
                     }
                 },
                 "ts": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
@@ -2699,18 +2699,18 @@
                     }
                 },
                 "py": {
-                    "name": "text claude-sonnet-4-5",
+                    "name": "text claude-sonnet-5-5",
                     "status": "ok",
                     "attributes": {
                         "gen_ai.operation.name": "text",
-                        "gen_ai.request.model": "claude-sonnet-4-5",
+                        "gen_ai.request.model": "claude-sonnet-5-5",
                         "gen_ai.response.finish_reasons": [
                             "stop"
                         ],
                         "gen_ai.system": "anthropic",
                         "gen_ai.usage.input_tokens": 10,
                         "gen_ai.usage.output_tokens": 5,
-                        "llm.model_name": "claude-sonnet-4-5",
+                        "llm.model_name": "claude-sonnet-5-5",
                         "llm.provider": "anthropic",
                         "llm.system": "anthropic",
                         "llm.token_count.completion": 5,
