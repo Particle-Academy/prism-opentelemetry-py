@@ -426,7 +426,7 @@ def test_exports_the_rate_limits_a_rate_limited_generation_failed_with() -> None
             trace_id="rate-limited",
             operation="text",
             provider="anthropic",
-            model="claude-sonnet-4-5",
+            model="claude-sonnet-5-5",
         )
     )
 

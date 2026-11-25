@@ -74,7 +74,7 @@ def clock() -> Any:
 
 
 CONTEXT = GenerationContext(
-    trace_id="trace-1", operation="text", provider="anthropic", model="claude-sonnet-4-5"
+    trace_id="trace-1", operation="text", provider="anthropic", model="claude-sonnet-5-5"
 )
 
 
@@ -85,9 +85,9 @@ def test_carries_both_attribute_conventions() -> None:
     tracer = RecordingTracer()
     TelemetrySubscriber(tracer, now=clock()).on_generation_started(CONTEXT)
 
-    assert tracer.spans[0].name == "text claude-sonnet-4-5"
+    assert tracer.spans[0].name == "text claude-sonnet-5-5"
     assert tracer.spans[0].attributes[GenAi.OPERATION_NAME] == "text"
-    assert tracer.spans[0].attributes[GenAi.REQUEST_MODEL] == "claude-sonnet-4-5"
+    assert tracer.spans[0].attributes[GenAi.REQUEST_MODEL] == "claude-sonnet-5-5"
     assert tracer.spans[0].attributes[OpenInference.SPAN_KIND] == OpenInference.KIND_CHAIN
 
 
