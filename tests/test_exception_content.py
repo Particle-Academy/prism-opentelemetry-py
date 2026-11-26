@@ -19,6 +19,7 @@ import pytest
 
 from prism_opentelemetry import (
     FAILED_DESCRIPTION,
+    AdvertisedTool,
     GenerationContext,
     PendingTool,
     SpanStore,
@@ -461,6 +462,8 @@ def test_a_tool_span_that_refuses_attributes_does_not_stop_the_failure() -> None
     assert store.span("t") is None
     assert tracer.spans[0].status == ("error", FAILED_DESCRIPTION)
     assert all(isinstance(s, SdkLike) and s.ended for s in tracer.spans)
+    # The tool span that refused its attributes still says it failed.
+    assert tracer.spans[1].status == ("error", None)
 
 
 class LenZero(str):
@@ -541,3 +544,35 @@ def test_the_trace_is_forgotten_whatever_the_callers_span_or_clock_does(
     # The tool span is still emitted and the exception still recorded.
     assert len(tracer.spans) == 2
     assert len(tracer.spans[0].exceptions) == 1
+    if refuses != "end":
+        assert all(isinstance(s, SdkLike) and s.ended for s in tracer.spans)
+
+
+def test_a_tracer_that_refuses_tool_spans_does_not_cost_the_root_its_record() -> None:
+    class Tracer(SdkLikeTracer):
+        def start_span(
+            self, name: str, start_time_nanos: int | None = None, parent: Any = None
+        ) -> Recorded:
+            if name.startswith("execute_tool"):
+                raise RuntimeError("no tool spans")
+            return super().start_span(name, start_time_nanos, parent)
+
+    tracer = Tracer()
+    store = SpanStore()
+    subscriber = TelemetrySubscriber(tracer, store, now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m"),
+        None,
+        [AdvertisedTool(name="lookup", digest="sha256:00")],
+    )
+    for name in ("a", "b"):
+        subscriber.on_tool_invoked("t", PendingTool(name=name, failed=True, error=failure()))
+    subscriber.on_generation_failed("t", failure())
+
+    root = tracer.spans[0]
+    assert store.span("t") is None
+    assert len(tracer.spans) == 1
+    assert len(root.exceptions) == 1
+    assert root.status == ("error", FAILED_DESCRIPTION)
+    assert "llm.tools.0.tool.name" in root.attributes
+    assert isinstance(root, SdkLike) and root.ended

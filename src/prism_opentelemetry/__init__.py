@@ -879,12 +879,13 @@ class TelemetrySubscriber:
         if span is None:
             return
 
-        # An exception is not ours: its __str__, its attributes or its class
-        # can raise. Whatever they do, the span ends with an error status and
-        # the trace is forgotten.
+        # An exception is not ours: its __str__, its attributes or its class can
+        # raise. Neither is the span, the tracer or the clock the caller gave
+        # us. Each step below is guarded on its own, so whatever one of them
+        # does, the others still run, the span ends and the trace is forgotten,
+        # and nothing raises into the application.
         try:
             # The status first: whatever happens after it, the span says it failed.
-            # On its own guard, so a span that refuses it still gets the rest.
             with contextlib.suppress(Exception):
                 span.set_status(
                     "error",
@@ -894,30 +895,36 @@ class TelemetrySubscriber:
                 )
 
             for index, tool in enumerate(self.store.take_remaining_tools(trace_id)):
-                self._emit_tool(tool, span, index)
+                with contextlib.suppress(Exception):
+                    self._emit_tool(tool, span, index)
 
             # The 429 is the moment an operator most wants the quota numbers, and
             # it is the one moment they are guaranteed to be reachable: a rate
             # limited generation has no response for them to travel on, so they
-            # travel on the error instead.
-            # No quota numbers from a value that will not give them up.
+            # travel on the error instead. None from a value that will not give
+            # them up.
             with contextlib.suppress(Exception):
                 self._apply_rate_limits(span, getattr(error, "rate_limits", None))
 
             if self._record_exceptions:
-                self._record_exception(span, self._exception(error))
+                with contextlib.suppress(Exception):
+                    self._record_exception(span, self._exception(error))
 
             # A failed generation carries its tool list too, and last for the
             # same reason: the status, the exception and the quota buckets are
             # what a reader came for.
-            self._write_held_tools(span, trace_id)
-        except Exception:  # noqa: BLE001, S110 - telemetry never raises into the application
-            pass
+            with contextlib.suppress(Exception):
+                self._write_held_tools(span, trace_id)
         finally:
-            # The trace is forgotten even if the caller's span or clock raises.
             try:
+                # A clock that raises still ends the span; the span stamps itself.
+                end: int | None
+                try:
+                    end = self._now()
+                except Exception:  # noqa: BLE001
+                    end = None
                 with contextlib.suppress(Exception):
-                    span.end(self._now())
+                    span.end(end)
             finally:
                 self.store.forget(trace_id)
 
@@ -948,16 +955,24 @@ class TelemetrySubscriber:
         return _content_free_type(type(error))(self._bounded(rendered))
 
     def _emit_tool(self, tool: PendingTool, parent: Span, index: int) -> None:
-        span = self._tracer.start_span(
-            f"{GenAi.OPERATION_EXECUTE_TOOL} {tool.name}",
-            start_time_nanos=tool.start_nanos,
-            parent=parent,
-        )
-
-        # A tool's values are not ours either, and the span is the caller's.
-        # Nothing here may raise into the caller, and the span ends whatever
-        # happens.
+        # A tool's values are not ours either, and the span and tracer are the
+        # caller's. Nothing here may raise into the caller, and a span that was
+        # started ends whatever happens.
         try:
+            span = self._tracer.start_span(
+                f"{GenAi.OPERATION_EXECUTE_TOOL} {tool.name}",
+                start_time_nanos=tool.start_nanos,
+                parent=parent,
+            )
+        except Exception:  # noqa: BLE001 - no span, nothing to end
+            return
+
+        try:
+            # The status first, as on the root: a span that refuses its
+            # attributes still says whether the call failed.
+            with contextlib.suppress(Exception):
+                span.set_status("error" if tool.failed else "ok")
+
             span.set_attribute(GenAi.OPERATION_NAME, GenAi.OPERATION_EXECUTE_TOOL)
             span.set_attribute(GenAi.TOOL_NAME, tool.name)
             span.set_attribute(GenAi.TOOL_INDEX, index)
@@ -975,16 +990,15 @@ class TelemetrySubscriber:
             self._capture(
                 span, OpenInference.OUTPUT_VALUE, tool.result, OpenInference.OUTPUT_MIME_TYPE
             )
-
-            if tool.failed:
-                span.set_status("error")
-                if self._record_exceptions:
-                    self._record_exception(
-                        span, None if tool.error is None else self._exception(tool.error)
-                    )
-            else:
-                span.set_status("ok")
         except Exception:  # noqa: BLE001, S110 - fewer attributes beat a trace that never closes
+            pass
+
+        try:
+            if tool.failed and self._record_exceptions:
+                self._record_exception(
+                    span, None if tool.error is None else self._exception(tool.error)
+                )
+        except Exception:  # noqa: BLE001, S110
             pass
         finally:
             with contextlib.suppress(Exception):

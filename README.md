@@ -68,10 +68,13 @@ leaves the application. They are recorded only with `capture_content=True`.
 - With capture on, the status description is cut to `max_content_length`. The
   exception itself is recorded unless what an SDK would write from it (its
   message and its formatted traceback with every cause, context and note) is
-  longer than `max_content_length`. Then `record_exception` receives a stand-in
+  longer than `max_content_length`, or its `__str__` raises or returns something
+  other than a plain `str`. Then `record_exception` receives a stand-in
   of the same class name whose message is that text, cut. Like the capture-off
   stand-in it is not an instance of the original class, and it has no
   traceback or chain of its own.
+- A captured value that cannot be serialised (a prompt, an output, a tool's
+  parameters or result) is left off the span rather than raising.
 - `record_exceptions` is on by default. Turn it off to record no exception at
   all.
 
