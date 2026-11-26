@@ -61,6 +61,13 @@ leaves the application. They are recorded only with `capture_content=True`.
   `capture_content` off, a failed span's status description is
   `The generation failed.` and `record_exception` receives a stand-in that
   carries only the exception's class: no message, traceback, cause or notes.
+  The class's module and qualified name are still exported, so do not build
+  exception class names from data. The stand-in is not an instance of the
+  original class, so a span processor that filters on `isinstance` no longer
+  matches; filter on `exception.type` instead. With capture on, the status
+  description is cut to `max_content_length`, and an exception whose message
+  is longer is recorded as a stand-in with the message cut and the original
+  traceback.
 - `record_exceptions` is on by default. Turn it off to record no exception at
   all.
 

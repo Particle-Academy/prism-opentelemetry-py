@@ -8,6 +8,7 @@ import hashlib
 import json as _json
 import math
 import time
+import weakref
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -552,17 +553,44 @@ _MEDIA_KINDS = frozenset({"image", "audio", "video", "document"})
 FAILED_DESCRIPTION = "The generation failed."
 
 
+#: One stand-in class per original class, created once and released with it.
+_STAND_INS: weakref.WeakKeyDictionary[type[BaseException], type[Exception]] = (
+    weakref.WeakKeyDictionary()
+)
+
+
 def _content_free_type(cls: type[BaseException]) -> type[Exception]:
     """A stand-in class with the same module and qualified name as ``cls``.
 
     An OpenTelemetry SDK records ``exception.type`` from the class, so a
-    stand-in instance keeps the type and drops everything else.
+    stand-in instance keeps the type and drops everything else. It subclasses
+    ``Exception`` and not ``cls``, so none of the original's metaclass or
+    ``__init_subclass__`` code runs. Cached per class: a class is a reference
+    cycle, and creating one per failure would leave each to the cyclic
+    collector.
+
+    The class's module and qualified name are still exported. They are code,
+    not data, unless an application builds exception classes from data.
     """
-    return type(
-        cls.__name__,
-        (Exception,),
-        {"__module__": cls.__module__, "__qualname__": cls.__qualname__, "__doc__": None},
+    try:
+        cached = _STAND_INS.get(cls)
+    except TypeError:
+        cached = None
+    if cached is not None:
+        return cached
+
+    module = cls.__module__ if isinstance(cls.__module__, str) else ""
+    qualname = cls.__qualname__ if isinstance(cls.__qualname__, str) else "Exception"
+    name = cls.__name__ if isinstance(cls.__name__, str) else "Exception"
+    stand_in = type(
+        name, (Exception,), {"__module__": module, "__qualname__": qualname, "__doc__": None}
     )
+
+    try:
+        _STAND_INS[cls] = stand_in
+    except TypeError:
+        pass
+    return stand_in
 
 
 def _content_free(error: BaseException) -> BaseException:
@@ -574,6 +602,13 @@ def _content_free(error: BaseException) -> BaseException:
     application was handling.
     """
     return _content_free_type(type(error))()
+
+
+def _bounded_exception(error: BaseException, message: str) -> BaseException:
+    """A stand-in carrying ``message`` and the original traceback, and no chain."""
+    stand_in = _content_free_type(type(error))(message)
+    stand_in.__suppress_context__ = True
+    return stand_in.with_traceback(error.__traceback__)
 
 
 def without_media_bytes(value: Any) -> Any:
@@ -837,7 +872,9 @@ class TelemetrySubscriber:
         # reader came for.
         self._write_held_tools(span, trace_id)
 
-        span.set_status("error", str(error) if self._capture_content else FAILED_DESCRIPTION)
+        span.set_status(
+            "error", self._bounded(str(error)) if self._capture_content else FAILED_DESCRIPTION
+        )
         span.end(self._now())
         self.store.forget(trace_id)
 
@@ -847,7 +884,16 @@ class TelemetrySubscriber:
         The exception itself only under ``capture_content``; otherwise a
         stand-in that carries its class name alone.
         """
-        return error if self._capture_content else _content_free(error)
+        if not self._capture_content:
+            return _content_free(error)
+
+        # Under capture the exception is recorded as it is, unless its message
+        # is longer than any other captured value may be: then a stand-in with
+        # the message cut and the original traceback, without the chain.
+        message = str(error)
+        if message == self._bounded(message):
+            return error
+        return _bounded_exception(error, self._bounded(message))
 
     def _emit_tool(self, tool: PendingTool, parent: Span, index: int) -> None:
         span = self._tracer.start_span(

@@ -201,14 +201,16 @@ def raised(message: str) -> RuntimeError:
 
 
 def exception_event(error: BaseException | None, marker: str) -> dict[str, Any]:
-    """The ``exception`` event an OpenTelemetry Python SDK derives from ``error``.
+    """The ``exception`` event opentelemetry-sdk's ``Span.record_exception`` writes.
 
+    Mirrored attribute for attribute, because this port has no SDK to read back:
     ``exception.type`` is the qualified class name, prefixed by its module unless
-    that is ``builtins``; ``exception.message`` is ``str(error)``, kept only when
-    it is not empty. ``exception.stacktrace`` is kept when the exception has a
-    traceback or its formatted text carries the marker, and its TEXT, which
-    differs between machines, is recorded as ``present`` or ``present, carries
-    the content marker``.
+    that is ``builtins``; ``exception.message`` is ``str(error)``, even when
+    empty; ``exception.stacktrace`` is ``traceback.format_exception`` of it; and
+    ``exception.escaped`` is ``"False"``. The stack trace's TEXT differs between
+    machines, so it is recorded as one of three labels: ``type line only`` when
+    it is nothing but the class name, ``present, carries the content marker``
+    when the marker is in it, and ``present`` otherwise.
     """
     attributes: dict[str, Any] = {}
 
@@ -218,13 +220,16 @@ def exception_event(error: BaseException | None, marker: str) -> dict[str, Any]:
         attributes["exception.type"] = (
             f"{module}.{cls.__qualname__}" if module and module != "builtins" else cls.__qualname__
         )
-        if str(error):
-            attributes["exception.message"] = str(error)
+        attributes["exception.message"] = str(error)
         text = "".join(traceback.format_exception(cls, error, error.__traceback__))
-        if error.__traceback__ is not None or marker in text:
-            attributes["exception.stacktrace"] = (
-                "present, carries the content marker" if marker in text else "present"
-            )
+        if marker in text:
+            label = "present, carries the content marker"
+        elif text.strip() in {cls.__qualname__, attributes["exception.type"]}:
+            label = "type line only"
+        else:
+            label = "present"
+        attributes["exception.stacktrace"] = label
+        attributes["exception.escaped"] = "False"
 
     return {"name": "exception", "attributes": dict(sorted(attributes.items()))}
 
@@ -539,7 +544,20 @@ def test_keeps_the_exception_message_off_a_failed_span_with_capture_off() -> Non
             assert "carries the content marker" not in exported
             assert span["status_description"] == FAILED_DESCRIPTION
             assert len(span["events"]) == 1
-            assert list(span["events"][0]["attributes"]) == ["exception.type"]
+
+            # What a language's SDK writes beside the type may differ (Python
+            # always writes a message and a stack trace), but only ever empty:
+            # no message, and a stack trace that is the class name alone.
+            attributes = span["events"][0]["attributes"]
+            assert "exception.type" in attributes
+            assert set(attributes) <= {
+                "exception.type",
+                "exception.message",
+                "exception.stacktrace",
+                "exception.escaped",
+            }
+            assert attributes.get("exception.message", "") == ""
+            assert attributes.get("exception.stacktrace", "type line only") == "type line only"
 
         # This language, live, not only as recorded.
         live = json.dumps(record(entry), ensure_ascii=False)

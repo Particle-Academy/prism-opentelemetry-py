@@ -2,14 +2,14 @@
     "suite": "opentelemetry-span-attributes",
     "schema_version": 1,
     "corpus_version": "0.3.0",
-    "generated_by": "prism-parity:tools/generate-otel-span-attributes.php for php; the ports' own runners for ts and py. Every attribute map is execution output read back off an exporter — a hand-authored map would assert the author's model of the bridge rather than the bridge.",
+    "generated_by": "prism-parity:tools/generate-otel-span-attributes.php for php; the ports' own runners for ts and py. Every attribute map is execution output read back off an exporter — a hand-authored map would assert the author's model of the bridge rather than the bridge. One exception: the ports have no OpenTelemetry SDK, so on a failure row their `events` are what the bridge handed `recordException` / `record_exception`, turned into attributes by each SDK's own rules, mirrored attribute for attribute in the runner.",
     "scope": "The ROOT span of one generation, and only that. Step and tool spans are a separate value with a separate failure mode and are not covered here; a reader who takes this suite for whole-package coverage has made the mistake this repository's README warns about twice.",
     "inputs": {
         "operation": "One of Prism's own TelemetryOperation values -- text, structured, embeddings, image, stream. The NEUTRAL vocabulary the ecosystem already defines, so no language is handed a value pre-mapped into its own spelling.",
         "finish_reason": "One of Prism's own FinishReason values -- stop, tool-calls, length. Same reasoning.",
         "capture_content": "Whether the APPLICATION has content capture enabled. In the reference that is `prism.telemetry.capture_content`, which gates the events; in the ports it is the bridge's own `captureContent`. Two designs, one composed contract -- which is exactly what otel-0013 probes.",
         "rate_limits": "The quota buckets the PROVIDER reported, or null when it reported none. Each is {name, limit, remaining, resets_at}; `resets_at` is an ISO-8601 instant with an explicit offset, which every language parses into its own datetime type before the bridge ever sees it -- the bridge takes an instant, never a string, so no runner is asked to compare a formatted date. ALL THREE RUNNERS NOW HAND THEM OVER THE SAME WAY: as the completion event's own argument, beside usage, and never inside the response. Until 2026-09-05 the reference had no other channel than the response's Meta, so a case declaring quota had to hand PHP a response object even with content capture off -- a state core never produces. That is the reason these rows could agree byte for byte while a real successful generation exported no quota at all (G-45): the asymmetry in the CONSTRUCTION was the tell, and it is gone.",
-        "failure": "The exception a FAILED generation reports, or absent for a generation that completed. `message` is the exception's message and `content_marker` a string inside it. A row with a failure is driven through the bridge's failure path instead of its completion path, and its recorded spans carry two more fields: `status_description` and `events`, the exception events, with each attribute an OpenTelemetry SDK derives from the exception. `exception.stacktrace` is recorded as `present` or `present, carries the content marker`, because the frames differ between machines."
+        "failure": "The exception a FAILED generation reports, or absent for a generation that completed. `message` is the exception's message and `content_marker` a string inside it. A row with a failure is driven through the bridge's failure path instead of its completion path, and its recorded spans carry two more fields: `status_description` and `events`, the exception events with every attribute the language's SDK writes. `exception.stacktrace` is recorded as a label, never its text, because frames differ between machines: `type line only` when it is nothing but the class name, `present, carries the content marker` when the marker is in it, and `present` otherwise."
     },
     "cases": [
         {
@@ -2753,7 +2753,7 @@
             },
             "capture_content": false,
             "max_content_length": 65536,
-            "notes": "The exception's message repeats content the application was handling: here, the row a failed database write tried to insert. With content capture off, the span must not carry any of it, in any language. Each runner hands its bridge its own language's base runtime error carrying this message, and records the status description and the exception event the bridge produced. Expected in all three: status error, the fixed description `The generation failed.`, and one `exception` event whose only attribute is `exception.type`. The type is each language's own class name, so `events` differs by construction and the property compared is that `content_marker` appears nowhere in the span.",
+            "notes": "The exception's message repeats content the application was handling: here, the row a failed database write tried to insert. With content capture off, the span must not carry any of it, in any language. Each runner hands its bridge its own language's base runtime error carrying this message, and records the status description and the exception event the bridge produced. Expected in all three: status error, the fixed description `The generation failed.`, and one `exception` event that names `exception.type` and carries no message and no stack trace beyond the class name (Python's SDK always writes an empty message and a one-line trace). The type is each language's own class name, so `events` differs by construction and the property compared is that `content_marker` appears nowhere in the span. Asserted for all three columns by tools/otel-exception-content-schema.test.mjs here and by each bridge's corpus runner.",
             "spans": {
                 "php": {
                     "name": "chat claude-sonnet-5-5",
@@ -2816,6 +2816,9 @@
                         {
                             "name": "exception",
                             "attributes": {
+                                "exception.escaped": "False",
+                                "exception.message": "",
+                                "exception.stacktrace": "type line only",
                                 "exception.type": "RuntimeError"
                             }
                         }
@@ -2851,7 +2854,7 @@
             },
             "capture_content": true,
             "max_content_length": 65536,
-            "notes": "The control for otel-0024. Under capture the bridge records the exception itself, so the marker reaches the status description, `exception.message` and `exception.stacktrace`. A runner records a stack trace as `present`, or as `present, carries the content marker`, because the frames themselves differ from machine to machine.",
+            "notes": "The control for otel-0024. Under capture the bridge records the exception itself, so the marker reaches the status description, `exception.message` and `exception.stacktrace`. A stack trace is recorded as a label rather than its text, because frames differ from machine to machine.",
             "spans": {
                 "php": {
                     "name": "chat claude-sonnet-5-5",
@@ -2918,6 +2921,7 @@
                         {
                             "name": "exception",
                             "attributes": {
+                                "exception.escaped": "False",
                                 "exception.message": "SQLSTATE[22001]: insert into tool_runs (arguments, result) values ('{\"q\":\"CONTENT-MARKER-0f1e\"}', 'rows for CONTENT-MARKER-0f1e')",
                                 "exception.stacktrace": "present, carries the content marker",
                                 "exception.type": "RuntimeError"
@@ -3018,6 +3022,9 @@
                         {
                             "name": "exception",
                             "attributes": {
+                                "exception.escaped": "False",
+                                "exception.message": "",
+                                "exception.stacktrace": "type line only",
                                 "exception.type": "RuntimeError"
                             }
                         }
@@ -3114,6 +3121,9 @@
                         {
                             "name": "exception",
                             "attributes": {
+                                "exception.escaped": "False",
+                                "exception.message": "",
+                                "exception.stacktrace": "type line only",
                                 "exception.type": "RuntimeError"
                             }
                         }

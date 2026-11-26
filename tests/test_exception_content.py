@@ -9,6 +9,7 @@ notes.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import traceback
 from dataclasses import dataclass, field
@@ -191,3 +192,88 @@ def test_records_nothing_when_record_exceptions_is_off(capture: bool) -> None:
     assert tracer.spans[0].exceptions == []
     status = tracer.spans[0].status
     assert status is not None and status[0] == "error"
+
+
+def test_reuses_one_stand_in_class_per_exception_class() -> None:
+    first = run(False)[0].exceptions[0]
+    second = run(False)[0].exceptions[0]
+    assert first is not None and second is not None
+    assert type(first) is type(second)
+    assert first is not second
+
+
+def test_runs_none_of_the_original_class_code() -> None:
+    calls: list[str] = []
+
+    class Meta(type):
+        def __new__(mcs, name: str, bases: tuple[type, ...], ns: dict[str, Any]) -> Meta:
+            calls.append("metaclass")
+            return super().__new__(mcs, name, bases, ns)
+
+    class Hooked(RuntimeError, metaclass=Meta):
+        def __init_subclass__(cls, **kwargs: Any) -> None:
+            calls.append("init_subclass")
+            super().__init_subclass__(**kwargs)
+
+        def __str__(self) -> str:
+            calls.append("str")
+            return MARKER
+
+    calls.clear()
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, SpanStore(), now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    subscriber.on_generation_failed("t", Hooked(MARKER))
+
+    assert calls == []
+    assert MARKER not in exported(tracer.spans)
+
+
+def test_names_a_base_exception_only_class_without_its_message() -> None:
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, SpanStore(), now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    subscriber.on_generation_failed("t", asyncio.CancelledError(MARKER))
+
+    view = sdk_view(tracer.spans[0].exceptions[0])
+    assert view is not None and view["type"] == "asyncio.exceptions.CancelledError"
+    assert MARKER not in exported(tracer.spans)
+
+
+def test_a_failed_tool_with_no_error_records_none() -> None:
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, SpanStore(), now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    subscriber.on_tool_invoked("t", PendingTool(name="x", failed=True, error=None))
+    subscriber.on_generation_failed("t", failure())
+
+    assert tracer.spans[1].exceptions == [None]
+    assert MARKER not in exported(tracer.spans)
+
+
+def test_cuts_a_captured_message_to_max_content_length() -> None:
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(
+        tracer, SpanStore(), capture_content=True, max_content_length=10, now=lambda: 0
+    )
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    error = failure()
+    long = QueryError("x" * 5000, sql="")
+    long.__traceback__ = error.__traceback__
+    subscriber.on_generation_failed("t", long)
+
+    status = tracer.spans[0].status
+    assert status is not None and status[1] is not None and len(status[1]) < 30
+    recorded = tracer.spans[0].exceptions[0]
+    assert recorded is not None and len(str(recorded)) < 30
+    assert recorded.__traceback__ is long.__traceback__
+    assert type(recorded).__qualname__ == QueryError.__qualname__
+    assert len(str(long)) == 5000
