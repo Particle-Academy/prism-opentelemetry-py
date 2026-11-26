@@ -877,6 +877,12 @@ class TelemetrySubscriber:
         # can raise. Whatever they do, the span ends with an error status and
         # the trace is forgotten.
         try:
+            # The status first: whatever happens after it, the span says it failed.
+            span.set_status(
+                "error",
+                self._bounded(_message_of(error)) if self._capture_content else FAILED_DESCRIPTION,
+            )
+
             for index, tool in enumerate(self.store.take_remaining_tools(trace_id)):
                 self._emit_tool(tool, span, index)
 
@@ -887,11 +893,6 @@ class TelemetrySubscriber:
             # No quota numbers from a value that will not give them up.
             with contextlib.suppress(Exception):
                 self._apply_rate_limits(span, getattr(error, "rate_limits", None))
-
-            span.set_status(
-                "error",
-                self._bounded(_message_of(error)) if self._capture_content else FAILED_DESCRIPTION,
-            )
 
             if self._record_exceptions:
                 self._record_exception(span, self._exception(error))
@@ -936,15 +937,16 @@ class TelemetrySubscriber:
             parent=parent,
         )
 
-        span.set_attribute(GenAi.OPERATION_NAME, GenAi.OPERATION_EXECUTE_TOOL)
-        span.set_attribute(GenAi.TOOL_NAME, tool.name)
-        span.set_attribute(GenAi.TOOL_INDEX, index)
-        span.set_attribute(OpenInference.SPAN_KIND, OpenInference.KIND_TOOL)
-        span.set_attribute(OpenInference.TOOL_NAME, tool.name)
-
-        # A tool's values are not ours either. Nothing here may raise into the
-        # caller, and the span ends whatever happens.
+        # A tool's values are not ours either, and the span is the caller's.
+        # Nothing here may raise into the caller, and the span ends whatever
+        # happens.
         try:
+            span.set_attribute(GenAi.OPERATION_NAME, GenAi.OPERATION_EXECUTE_TOOL)
+            span.set_attribute(GenAi.TOOL_NAME, tool.name)
+            span.set_attribute(GenAi.TOOL_INDEX, index)
+            span.set_attribute(OpenInference.SPAN_KIND, OpenInference.KIND_TOOL)
+            span.set_attribute(OpenInference.TOOL_NAME, tool.name)
+
             if tool.call_id is not None:
                 span.set_attribute(GenAi.TOOL_CALL_ID, tool.call_id)
                 span.set_attribute(OpenInference.TOOL_CALL_ID, tool.call_id)

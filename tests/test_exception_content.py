@@ -434,3 +434,30 @@ def test_ends_every_span_when_a_tool_value_or_error_misbehaves(capture: bool) ->
     assert tracer.spans[1].status == ("error", None)
     if not capture:
         assert MARKER not in exported(tracer.spans)
+
+
+def test_a_tool_span_that_refuses_attributes_does_not_stop_the_failure() -> None:
+    class Refusing(SdkLike):
+        def set_attribute(self, key: str, value: Any) -> None:
+            raise RuntimeError("refused")
+
+    class Tracer(SdkLikeTracer):
+        def start_span(
+            self, name: str, start_time_nanos: int | None = None, parent: Any = None
+        ) -> Recorded:
+            span: Recorded = Refusing(name) if name.startswith("execute_tool") else SdkLike(name)
+            self.spans.append(span)
+            return span
+
+    tracer = Tracer()
+    store = SpanStore()
+    subscriber = TelemetrySubscriber(tracer, store, now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    subscriber.on_tool_invoked("t", PendingTool(name="x", failed=True, error=failure()))
+    subscriber.on_generation_failed("t", failure())
+
+    assert store.span("t") is None
+    assert tracer.spans[0].status == ("error", FAILED_DESCRIPTION)
+    assert all(isinstance(s, SdkLike) and s.ended for s in tracer.spans)
