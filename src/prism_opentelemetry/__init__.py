@@ -884,10 +884,14 @@ class TelemetrySubscriber:
         # the trace is forgotten.
         try:
             # The status first: whatever happens after it, the span says it failed.
-            span.set_status(
-                "error",
-                self._bounded(_message_of(error)) if self._capture_content else FAILED_DESCRIPTION,
-            )
+            # On its own guard, so a span that refuses it still gets the rest.
+            with contextlib.suppress(Exception):
+                span.set_status(
+                    "error",
+                    self._bounded(_message_of(error))
+                    if self._capture_content
+                    else FAILED_DESCRIPTION,
+                )
 
             for index, tool in enumerate(self.store.take_remaining_tools(trace_id)):
                 self._emit_tool(tool, span, index)
@@ -910,8 +914,12 @@ class TelemetrySubscriber:
         except Exception:  # noqa: BLE001, S110 - telemetry never raises into the application
             pass
         finally:
-            span.end(self._now())
-            self.store.forget(trace_id)
+            # The trace is forgotten even if the caller's span or clock raises.
+            try:
+                with contextlib.suppress(Exception):
+                    span.end(self._now())
+            finally:
+                self.store.forget(trace_id)
 
     def _exception(self, error: BaseException) -> BaseException:
         """What ``record_exception`` may see of a failure.
@@ -930,11 +938,12 @@ class TelemetrySubscriber:
         try:
             rendered = "".join(traceback.format_exception(type(error), error, error.__traceback__))
             # The SDK also calls str() on it, which format_exception survives
-            # and record_exception does not.
-            str(error)
+            # and record_exception does not; and a str subclass would reach the
+            # event as itself.
+            exact = type(str(error)) is str
         except Exception:  # noqa: BLE001 - an exception that will not render
             return _content_free_type(type(error))(self._bounded(_rendering_of(error)))
-        if rendered == self._bounded(rendered):
+        if exact and rendered == self._bounded(rendered):
             return error
         return _content_free_type(type(error))(self._bounded(rendered))
 
@@ -978,7 +987,8 @@ class TelemetrySubscriber:
         except Exception:  # noqa: BLE001, S110 - fewer attributes beat a trace that never closes
             pass
         finally:
-            span.end(tool.end_nanos)
+            with contextlib.suppress(Exception):
+                span.end(tool.end_nanos)
 
     @staticmethod
     def _record_exception(span: Span, error: BaseException | None) -> None:

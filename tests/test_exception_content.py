@@ -494,3 +494,50 @@ def test_a_str_subclass_message_is_still_bounded(kind: type[str]) -> None:
     assert status[1] is not None and type(status[1]) is str and len(status[1]) < 30
     assert store.span("t") is None
     assert isinstance(tracer.spans[0], SdkLike) and tracer.spans[0].ended
+
+
+@pytest.mark.parametrize("capture", [False, True])
+@pytest.mark.parametrize("refuses", ["end", "set_status", "now"])
+def test_the_trace_is_forgotten_whatever_the_callers_span_or_clock_does(
+    capture: bool, refuses: str
+) -> None:
+    class Refusing(SdkLike):
+        def end(self, end_time_nanos: int | None = None) -> None:
+            if refuses == "end":
+                raise RuntimeError("end")
+            super().end(end_time_nanos)
+
+        def set_status(self, code: str, message: str | None = None) -> None:
+            if refuses == "set_status":
+                raise RuntimeError("status")
+            super().set_status(code, message)
+
+    class Tracer(SdkLikeTracer):
+        def start_span(
+            self, name: str, start_time_nanos: int | None = None, parent: Any = None
+        ) -> Recorded:
+            span = Refusing(name)
+            self.spans.append(span)
+            return span
+
+    armed = {"on": False}
+
+    def clock() -> int:
+        if refuses == "now" and armed["on"]:
+            raise RuntimeError("now")
+        return 0
+
+    tracer = Tracer()
+    store = SpanStore()
+    subscriber = TelemetrySubscriber(tracer, store, capture_content=capture, now=clock)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    subscriber.on_tool_invoked("t", PendingTool(name="x", failed=True, error=failure()))
+    armed["on"] = True
+    subscriber.on_generation_failed("t", failure())
+
+    assert store.span("t") is None
+    # The tool span is still emitted and the exception still recorded.
+    assert len(tracer.spans) == 2
+    assert len(tracer.spans[0].exceptions) == 1
