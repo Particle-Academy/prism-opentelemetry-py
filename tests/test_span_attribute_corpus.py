@@ -20,6 +20,7 @@ here rather than a silent change of meaning.
 from __future__ import annotations
 
 import json
+import traceback
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +29,7 @@ from typing import Any
 import pytest
 
 from prism_opentelemetry import (
+    FAILED_DESCRIPTION,
     AdvertisedTool,
     GenAi,
     GenerationContext,
@@ -49,15 +51,18 @@ class Recorded:
     name: str
     status: str = "unset"
     attributes: dict[str, Any] = field(default_factory=dict)
+    description: str | None = None
+    exceptions: list[BaseException | None] = field(default_factory=list)
 
     def set_attribute(self, key: str, value: Any) -> None:
         self.attributes[key] = value
 
     def set_status(self, code: str, message: str | None = None) -> None:
         self.status = code
+        self.description = message
 
     def record_exception(self, error: BaseException | None) -> None:
-        pass
+        self.exceptions.append(error)
 
     def end(self, end_time_nanos: int | None = None) -> None:
         pass
@@ -154,24 +159,74 @@ def record(entry: dict[str, Any]) -> dict[str, Any]:
         )
     )
 
-    subscriber.on_generation_completed(
-        entry["id"],
-        finish_reason=g["finish_reason"],
-        usage=usage,
-        output=g["output"],
-        rate_limits=(
-            None if g["rate_limits"] is None else [rate_limit(r) for r in g["rate_limits"]]
-        ),
-    )
+    failure = g.get("failure")
+
+    if failure is None:
+        subscriber.on_generation_completed(
+            entry["id"],
+            finish_reason=g["finish_reason"],
+            usage=usage,
+            output=g["output"],
+            rate_limits=(
+                None if g["rate_limits"] is None else [rate_limit(r) for r in g["rate_limits"]]
+            ),
+        )
+    else:
+        subscriber.on_generation_failed(entry["id"], raised(failure["message"]))
 
     assert len(tracer.spans) == 1
     span = tracer.spans[0]
 
-    return {
+    recorded: dict[str, Any] = {
         "name": span.name,
         "status": span.status,
         "attributes": dict(sorted(span.attributes.items())),
     }
+
+    if failure is not None:
+        recorded["status_description"] = span.description
+        recorded["events"] = [
+            exception_event(error, failure["content_marker"]) for error in span.exceptions
+        ]
+
+    return recorded
+
+
+def raised(message: str) -> RuntimeError:
+    """A RuntimeError that has been raised, so it carries a traceback."""
+    try:
+        raise RuntimeError(message)
+    except RuntimeError as error:
+        return error
+
+
+def exception_event(error: BaseException | None, marker: str) -> dict[str, Any]:
+    """The ``exception`` event an OpenTelemetry Python SDK derives from ``error``.
+
+    ``exception.type`` is the qualified class name, prefixed by its module unless
+    that is ``builtins``; ``exception.message`` is ``str(error)``, kept only when
+    it is not empty. ``exception.stacktrace`` is kept when the exception has a
+    traceback or its formatted text carries the marker, and its TEXT, which
+    differs between machines, is recorded as ``present`` or ``present, carries
+    the content marker``.
+    """
+    attributes: dict[str, Any] = {}
+
+    if error is not None:
+        cls = type(error)
+        module = cls.__module__
+        attributes["exception.type"] = (
+            f"{module}.{cls.__qualname__}" if module and module != "builtins" else cls.__qualname__
+        )
+        if str(error):
+            attributes["exception.message"] = str(error)
+        text = "".join(traceback.format_exception(cls, error, error.__traceback__))
+        if error.__traceback__ is not None or marker in text:
+            attributes["exception.stacktrace"] = (
+                "present, carries the content marker" if marker in text else "present"
+            )
+
+    return {"name": "exception", "attributes": dict(sorted(attributes.items()))}
 
 
 def case_of(case_id: str) -> dict[str, Any]:
@@ -186,7 +241,7 @@ def rate_limit_attributes_of(attributes: dict[str, Any]) -> dict[str, Any]:
 
 
 def test_is_the_whole_suite_not_a_subset_someone_trimmed_to_green() -> None:
-    assert len(CORPUS["cases"]) == 23
+    assert len(CORPUS["cases"]) == 27
 
 
 @pytest.mark.parametrize("entry", CORPUS["cases"], ids=lambda e: e["id"])
@@ -208,6 +263,8 @@ def test_agrees_with_the_reference_on_the_attributes_nobody_has_disputed() -> No
         "openinference.span.kind",
         "input.value",
         "input.mime_type",
+        # otel-0024..0027: `exception.type` is each language's own class name.
+        "events",
     }
 
     unexpected = [
@@ -454,3 +511,36 @@ def test_exports_the_rate_limits_a_rate_limited_generation_failed_with() -> None
         "prism.rate_limit.requests.remaining": 0,
         "prism.rate_limit.requests.resets_at_unix": 1788611696,
     }
+
+
+def test_keeps_the_exception_message_off_a_failed_span_with_capture_off() -> None:
+    """otel-0024..0027, across the three RECORDED columns, not just this one.
+
+    An exception's message can repeat content the application was handling. A
+    row where every language leaks agrees perfectly, so each column is checked.
+    """
+    failures = [entry for entry in CORPUS["cases"] if "failure" in entry["generation"]]
+    assert len(failures) == 4
+
+    for entry in failures:
+        marker = entry["generation"]["failure"]["content_marker"]
+        # Vacuity guard: the marker really is in what each bridge was handed.
+        assert marker in entry["generation"]["failure"]["message"]
+
+        for span in (entry["spans"]["php"], entry["spans"]["ts"], entry["spans"]["py"]):
+            exported = json.dumps(span, ensure_ascii=False)
+            assert span["status"] == "error"
+
+            if entry["capture_content"]:
+                assert marker in exported
+                continue
+
+            assert marker not in exported
+            assert "carries the content marker" not in exported
+            assert span["status_description"] == FAILED_DESCRIPTION
+            assert len(span["events"]) == 1
+            assert list(span["events"][0]["attributes"]) == ["exception.type"]
+
+        # This language, live, not only as recorded.
+        live = json.dumps(record(entry), ensure_ascii=False)
+        assert (marker in live) is entry["capture_content"]

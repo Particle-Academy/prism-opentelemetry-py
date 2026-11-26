@@ -57,8 +57,12 @@ leaves the application. They are recorded only with `capture_content=True`.
   `without_media_bytes()` is the function that does it.
 - The model, provider, token counts and rate limits are not content and are
   always recorded.
-- `record_exceptions` is on by default and puts the exception's message on the
-  root span. Turn it off if your errors can carry user content.
+- Exception messages are recorded only when content capture is on. With
+  `capture_content` off, a failed span's status description is
+  `The generation failed.` and `record_exception` receives a stand-in that
+  carries only the exception's class: no message, traceback, cause or notes.
+- `record_exceptions` is on by default. Turn it off to record no exception at
+  all.
 
 ## Rate limits
 

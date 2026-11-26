@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Any, Protocol
 
 __all__ = [
+    "FAILED_DESCRIPTION",
     "AdvertisedTool",
     "GenAi",
     "GenerationContext",
@@ -547,6 +548,33 @@ class _Options:
 
 _MEDIA_KINDS = frozenset({"image", "audio", "video", "document"})
 
+#: The status description of a failed generation when content capture is off.
+FAILED_DESCRIPTION = "The generation failed."
+
+
+def _content_free_type(cls: type[BaseException]) -> type[Exception]:
+    """A stand-in class with the same module and qualified name as ``cls``.
+
+    An OpenTelemetry SDK records ``exception.type`` from the class, so a
+    stand-in instance keeps the type and drops everything else.
+    """
+    return type(
+        cls.__name__,
+        (Exception,),
+        {"__module__": cls.__module__, "__qualname__": cls.__qualname__, "__doc__": None},
+    )
+
+
+def _content_free(error: BaseException) -> BaseException:
+    """The exception's class, and nothing else from it.
+
+    A new, never-raised instance of a stand-in class: no message, no args, no
+    traceback, no ``__cause__``, ``__context__`` or ``__notes__``, and none of
+    the original's attributes. Each of those can repeat the content the
+    application was handling.
+    """
+    return _content_free_type(type(error))()
+
 
 def without_media_bytes(value: Any) -> Any:
     """Captured content with media bytes taken out.
@@ -802,16 +830,24 @@ class TelemetrySubscriber:
         self._apply_rate_limits(span, getattr(error, "rate_limits", None))
 
         if self._record_exceptions:
-            span.record_exception(error)
+            span.record_exception(self._exception(error))
 
         # A failed generation carries its tool list too, and last for the same
         # reason: the status, the exception and the quota buckets are what a
         # reader came for.
         self._write_held_tools(span, trace_id)
 
-        span.set_status("error", str(error))
+        span.set_status("error", str(error) if self._capture_content else FAILED_DESCRIPTION)
         span.end(self._now())
         self.store.forget(trace_id)
+
+    def _exception(self, error: BaseException) -> BaseException:
+        """What ``record_exception`` may see of a failure.
+
+        The exception itself only under ``capture_content``; otherwise a
+        stand-in that carries its class name alone.
+        """
+        return error if self._capture_content else _content_free(error)
 
     def _emit_tool(self, tool: PendingTool, parent: Span, index: int) -> None:
         span = self._tracer.start_span(
@@ -838,7 +874,7 @@ class TelemetrySubscriber:
 
         if tool.failed:
             if self._record_exceptions:
-                span.record_exception(tool.error)
+                span.record_exception(None if tool.error is None else self._exception(tool.error))
             span.set_status("error")
         else:
             span.set_status("ok")

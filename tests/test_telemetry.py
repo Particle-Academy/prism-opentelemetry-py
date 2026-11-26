@@ -126,7 +126,9 @@ def test_records_the_exception_on_failure_and_can_be_told_not_to() -> None:
     failure = RuntimeError("provider is down")
 
     with_recording = RecordingTracer()
-    one = TelemetrySubscriber(with_recording, now=clock())
+    # Under capture, so the exception itself is recorded. Without it only the
+    # class name is: see test_exception_content.py.
+    one = TelemetrySubscriber(with_recording, now=clock(), capture_content=True)
     one.on_generation_started(CONTEXT)
     one.on_generation_failed("trace-1", failure)
 
