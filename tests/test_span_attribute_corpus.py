@@ -210,7 +210,8 @@ def exception_event(error: BaseException | None, marker: str) -> dict[str, Any]:
     ``exception.escaped`` is ``"False"``. The stack trace's TEXT differs between
     machines, so it is recorded as one of three labels: ``type line only`` when
     it is nothing but the class name, ``present, carries the content marker``
-    when the marker is in it, and ``present`` otherwise.
+    when the marker is in it, and ``present`` otherwise. ``None`` is not
+    mirrored: only a tool span can pass it, and these rows record root spans.
     """
     attributes: dict[str, Any] = {}
 

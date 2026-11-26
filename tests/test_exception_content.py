@@ -358,3 +358,79 @@ def test_an_unnamed_module_renders_as_a_bare_class_name() -> None:
     assert recorded is not None
     assert type(recorded).__module__ == "builtins"
     assert MARKER not in exported(tracer.spans)
+
+
+@dataclass
+class SdkLike(Recorded):
+    """A span that reads an exception the way opentelemetry-sdk does."""
+
+    ended: bool = False
+
+    def record_exception(self, error: BaseException | None) -> None:
+        if error is not None:
+            str(error)
+            "".join(traceback.format_exception(type(error), error, error.__traceback__))
+        self.exceptions.append(error)
+
+    def end(self, end_time_nanos: int | None = None) -> None:
+        self.ended = True
+
+
+class SdkLikeTracer(RecordingTracer):
+    def start_span(
+        self, name: str, start_time_nanos: int | None = None, parent: Any = None
+    ) -> Recorded:
+        span = SdkLike(name)
+        self.spans.append(span)
+        return span
+
+
+class BadStr(RuntimeError):
+    def __str__(self) -> str:
+        raise RuntimeError("no")
+
+
+@pytest.mark.parametrize("capture", [False, True])
+def test_a_raising_str_never_stops_the_error_status(capture: bool) -> None:
+    tracer = SdkLikeTracer()
+    store = SpanStore()
+    subscriber = TelemetrySubscriber(tracer, store, capture_content=capture, now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    subscriber.on_generation_failed("t", BadStr())
+
+    span = tracer.spans[0]
+    assert span.status is not None and span.status[0] == "error"
+    assert isinstance(span, SdkLike) and span.ended
+    assert store.span("t") is None
+    assert len(span.exceptions) == 1
+
+
+@pytest.mark.parametrize("capture", [False, True])
+def test_ends_every_span_when_a_tool_value_or_error_misbehaves(capture: bool) -> None:
+    tracer = SdkLikeTracer()
+    store = SpanStore()
+    subscriber = TelemetrySubscriber(tracer, store, capture_content=capture, now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    subscriber.on_tool_invoked(
+        "t",
+        PendingTool(
+            name="x",
+            call_id="c",
+            parameters={"s": {1, 2}},
+            result=object(),
+            failed=True,
+            error=BadStr(),
+        ),
+    )
+    subscriber.on_generation_failed("t", failure())
+
+    assert store.span("t") is None
+    assert all(isinstance(s, SdkLike) and s.ended for s in tracer.spans)
+    assert tracer.spans[0].status is not None and tracer.spans[0].status[0] == "error"
+    assert tracer.spans[1].status == ("error", None)
+    if not capture:
+        assert MARKER not in exported(tracer.spans)

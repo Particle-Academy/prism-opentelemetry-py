@@ -613,6 +613,14 @@ def _content_free(error: BaseException) -> BaseException:
     return _content_free_type(type(error))()
 
 
+def _rendering_of(error: BaseException) -> str:
+    """What ``traceback`` makes of an exception, or its class name alone."""
+    try:
+        return "".join(traceback.format_exception(type(error), error, error.__traceback__))
+    except Exception:  # noqa: BLE001
+        return type(error).__qualname__
+
+
 def _message_of(error: BaseException) -> str:
     """``str(error)``, or an empty string when the exception will not give one."""
     try:
@@ -865,12 +873,13 @@ class TelemetrySubscriber:
         if span is None:
             return
 
-        for index, tool in enumerate(self.store.take_remaining_tools(trace_id)):
-            self._emit_tool(tool, span, index)
-
         # An exception is not ours: its __str__, its attributes or its class
-        # can raise. Whatever they do, the span ends and the trace is forgotten.
+        # can raise. Whatever they do, the span ends with an error status and
+        # the trace is forgotten.
         try:
+            for index, tool in enumerate(self.store.take_remaining_tools(trace_id)):
+                self._emit_tool(tool, span, index)
+
             # The 429 is the moment an operator most wants the quota numbers, and
             # it is the one moment they are guaranteed to be reachable: a rate
             # limited generation has no response for them to travel on, so they
@@ -879,18 +888,18 @@ class TelemetrySubscriber:
             with contextlib.suppress(Exception):
                 self._apply_rate_limits(span, getattr(error, "rate_limits", None))
 
+            span.set_status(
+                "error",
+                self._bounded(_message_of(error)) if self._capture_content else FAILED_DESCRIPTION,
+            )
+
             if self._record_exceptions:
-                span.record_exception(self._exception(error))
+                self._record_exception(span, self._exception(error))
 
             # A failed generation carries its tool list too, and last for the
             # same reason: the status, the exception and the quota buckets are
             # what a reader came for.
             self._write_held_tools(span, trace_id)
-
-            span.set_status(
-                "error",
-                self._bounded(_message_of(error)) if self._capture_content else FAILED_DESCRIPTION,
-            )
         finally:
             span.end(self._now())
             self.store.forget(trace_id)
@@ -911,8 +920,11 @@ class TelemetrySubscriber:
         # traceback or chain of its own to add to it.
         try:
             rendered = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+            # The SDK also calls str() on it, which format_exception survives
+            # and record_exception does not.
+            str(error)
         except Exception:  # noqa: BLE001 - an exception that will not render
-            return _content_free(error)
+            return _content_free_type(type(error))(self._bounded(_rendering_of(error)))
         if rendered == self._bounded(rendered):
             return error
         return _content_free_type(type(error))(self._bounded(rendered))
@@ -930,24 +942,39 @@ class TelemetrySubscriber:
         span.set_attribute(OpenInference.SPAN_KIND, OpenInference.KIND_TOOL)
         span.set_attribute(OpenInference.TOOL_NAME, tool.name)
 
-        if tool.call_id is not None:
-            span.set_attribute(GenAi.TOOL_CALL_ID, tool.call_id)
-            span.set_attribute(OpenInference.TOOL_CALL_ID, tool.call_id)
+        # A tool's values are not ours either. Nothing here may raise into the
+        # caller, and the span ends whatever happens.
+        try:
+            if tool.call_id is not None:
+                span.set_attribute(GenAi.TOOL_CALL_ID, tool.call_id)
+                span.set_attribute(OpenInference.TOOL_CALL_ID, tool.call_id)
 
-        self._capture(span, OpenInference.TOOL_PARAMETERS, tool.parameters, None)
-        self._capture(
-            span, OpenInference.INPUT_VALUE, tool.parameters, OpenInference.INPUT_MIME_TYPE
-        )
-        self._capture(span, OpenInference.OUTPUT_VALUE, tool.result, OpenInference.OUTPUT_MIME_TYPE)
+            self._capture(span, OpenInference.TOOL_PARAMETERS, tool.parameters, None)
+            self._capture(
+                span, OpenInference.INPUT_VALUE, tool.parameters, OpenInference.INPUT_MIME_TYPE
+            )
+            self._capture(
+                span, OpenInference.OUTPUT_VALUE, tool.result, OpenInference.OUTPUT_MIME_TYPE
+            )
 
-        if tool.failed:
-            if self._record_exceptions:
-                span.record_exception(None if tool.error is None else self._exception(tool.error))
-            span.set_status("error")
-        else:
-            span.set_status("ok")
+            if tool.failed:
+                span.set_status("error")
+                if self._record_exceptions:
+                    self._record_exception(
+                        span, None if tool.error is None else self._exception(tool.error)
+                    )
+            else:
+                span.set_status("ok")
+        except Exception:  # noqa: BLE001, S110 - fewer attributes beat a trace that never closes
+            pass
+        finally:
+            span.end(tool.end_nanos)
 
-        span.end(tool.end_nanos)
+    @staticmethod
+    def _record_exception(span: Span, error: BaseException | None) -> None:
+        """``record_exception``, which may not raise into the caller."""
+        with contextlib.suppress(Exception):
+            span.record_exception(error)
 
     def _apply_usage(self, span: Span, usage: Usage | None) -> None:
         if usage is None:
@@ -1099,11 +1126,14 @@ class TelemetrySubscriber:
         if not self._capture_content or value is None:
             return
 
-        text = (
-            value
-            if isinstance(value, str)
-            else _json.dumps(value if self._capture_media else without_media_bytes(value))
-        )
+        try:
+            text = (
+                value
+                if isinstance(value, str)
+                else _json.dumps(value if self._capture_media else without_media_bytes(value))
+            )
+        except Exception:  # noqa: BLE001 - not serialisable: left off the span
+            return
         span.set_attribute(key, self._bounded(text))
 
         if mime_key is not None:
