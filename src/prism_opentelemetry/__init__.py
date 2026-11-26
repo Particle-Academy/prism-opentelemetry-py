@@ -4,16 +4,20 @@ from __future__ import annotations
 
 import base64
 import binascii
+import contextlib
 import hashlib
 import json as _json
 import math
 import time
+import traceback
+import weakref
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol
 
 __all__ = [
+    "FAILED_DESCRIPTION",
     "AdvertisedTool",
     "GenAi",
     "GenerationContext",
@@ -547,6 +551,89 @@ class _Options:
 
 _MEDIA_KINDS = frozenset({"image", "audio", "video", "document"})
 
+#: The status description of a failed generation when content capture is off.
+FAILED_DESCRIPTION = "The generation failed."
+
+
+#: One stand-in class per original class, created once and released with it.
+_STAND_INS: weakref.WeakKeyDictionary[type[BaseException], type[Exception]] = (
+    weakref.WeakKeyDictionary()
+)
+
+
+def _content_free_type(cls: type[BaseException]) -> type[Exception]:
+    """A stand-in class with the same module and qualified name as ``cls``.
+
+    An OpenTelemetry SDK records ``exception.type`` from the class, so a
+    stand-in instance keeps the type and drops everything else. It subclasses
+    ``Exception`` and not ``cls``, so none of the original's metaclass or
+    ``__init_subclass__`` code runs. Cached per class: a class is a reference
+    cycle, and creating one per failure would leave each to the cyclic
+    collector.
+
+    The class's module and qualified name are still exported. They are code,
+    not data, unless an application builds exception classes from data.
+    """
+    # A metaclass whose __hash__ or __eq__ raises simply goes uncached.
+    with contextlib.suppress(Exception):
+        cached = _STAND_INS.get(cls)
+        if cached is not None:
+            return cached
+
+    try:
+        module = getattr(cls, "__module__", None)
+        qualname = getattr(cls, "__qualname__", None)
+        name = getattr(cls, "__name__", None)
+        stand_in = type(
+            name if isinstance(name, str) and name else "Exception",
+            (Exception,),
+            {
+                # An unnamed module renders as a bare class name, like a builtin.
+                "__module__": module if isinstance(module, str) and module else "builtins",
+                "__qualname__": qualname if isinstance(qualname, str) and qualname else "Exception",
+                "__doc__": None,
+            },
+        )
+    except Exception:  # noqa: BLE001 - a class that will not describe itself
+        return Exception
+
+    with contextlib.suppress(Exception):
+        _STAND_INS[cls] = stand_in
+    return stand_in
+
+
+def _content_free(error: BaseException) -> BaseException:
+    """The exception's class, and nothing else from it.
+
+    A new, never-raised instance of a stand-in class: no message, no args, no
+    traceback, no ``__cause__``, ``__context__`` or ``__notes__``, and none of
+    the original's attributes. Each of those can repeat the content the
+    application was handling.
+    """
+    return _content_free_type(type(error))()
+
+
+def _rendering_of(error: BaseException) -> str:
+    """What ``traceback`` makes of an exception, or its class name alone."""
+    try:
+        return "".join(traceback.format_exception(type(error), error, error.__traceback__))
+    except Exception:  # noqa: BLE001
+        return type(error).__qualname__
+
+
+def _message_of(error: BaseException) -> str:
+    """``str(error)`` as an exact ``str``, or ``""`` when the exception will not give one.
+
+    ``__str__`` may return a ``str`` subclass whose ``__len__`` or ``__getitem__``
+    is its own code; the bound would then run it. ``str.__str__`` copies the
+    characters without calling either.
+    """
+    try:
+        text = str(error)
+        return text if type(text) is str else str.__str__(text)
+    except Exception:  # noqa: BLE001
+        return ""
+
 
 def without_media_bytes(value: Any) -> Any:
     """Captured content with media bytes taken out.
@@ -792,58 +879,136 @@ class TelemetrySubscriber:
         if span is None:
             return
 
-        for index, tool in enumerate(self.store.take_remaining_tools(trace_id)):
-            self._emit_tool(tool, span, index)
+        # An exception is not ours: its __str__, its attributes or its class can
+        # raise. Neither is the span, the tracer or the clock the caller gave
+        # us. Each step below is guarded on its own, so whatever one of them
+        # does, the others still run, the span ends and the trace is forgotten,
+        # and nothing raises into the application.
+        try:
+            # The status first: whatever happens after it, the span says it failed.
+            with contextlib.suppress(Exception):
+                span.set_status(
+                    "error",
+                    self._bounded(_message_of(error))
+                    if self._capture_content
+                    else FAILED_DESCRIPTION,
+                )
 
-        # The 429 is the moment an operator most wants the quota numbers, and it
-        # is the one moment they are guaranteed to be reachable: a rate limited
-        # generation has no response for them to travel on, so they travel on
-        # the error instead.
-        self._apply_rate_limits(span, getattr(error, "rate_limits", None))
+            for index, tool in enumerate(self.store.take_remaining_tools(trace_id)):
+                with contextlib.suppress(Exception):
+                    self._emit_tool(tool, span, index)
 
-        if self._record_exceptions:
-            span.record_exception(error)
+            # The 429 is the moment an operator most wants the quota numbers, and
+            # it is the one moment they are guaranteed to be reachable: a rate
+            # limited generation has no response for them to travel on, so they
+            # travel on the error instead. None from a value that will not give
+            # them up.
+            with contextlib.suppress(Exception):
+                self._apply_rate_limits(span, getattr(error, "rate_limits", None))
 
-        # A failed generation carries its tool list too, and last for the same
-        # reason: the status, the exception and the quota buckets are what a
-        # reader came for.
-        self._write_held_tools(span, trace_id)
+            if self._record_exceptions:
+                with contextlib.suppress(Exception):
+                    self._record_exception(span, self._exception(error))
 
-        span.set_status("error", str(error))
-        span.end(self._now())
-        self.store.forget(trace_id)
+            # A failed generation carries its tool list too, and last for the
+            # same reason: the status, the exception and the quota buckets are
+            # what a reader came for.
+            with contextlib.suppress(Exception):
+                self._write_held_tools(span, trace_id)
+        finally:
+            try:
+                # A clock that raises still ends the span; the span stamps itself.
+                end: int | None
+                try:
+                    end = self._now()
+                except Exception:  # noqa: BLE001
+                    end = None
+                with contextlib.suppress(Exception):
+                    span.end(end)
+            finally:
+                self.store.forget(trace_id)
+
+    def _exception(self, error: BaseException) -> BaseException:
+        """What ``record_exception`` may see of a failure.
+
+        The exception itself only under ``capture_content``; otherwise a
+        stand-in that carries its class name alone.
+        """
+        if not self._capture_content:
+            return _content_free(error)
+
+        # Under capture the exception is recorded as it is, unless what an SDK
+        # would write from it -- the message, and the formatted traceback with
+        # every cause, context and note -- is longer than any captured value may
+        # be. Then a stand-in whose message is that text, cut, and which has no
+        # traceback or chain of its own to add to it.
+        try:
+            rendered = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+            # The SDK also calls str() on it, which format_exception survives
+            # and record_exception does not; and a str subclass would reach the
+            # event as itself.
+            exact = type(str(error)) is str
+        except Exception:  # noqa: BLE001 - an exception that will not render
+            return _content_free_type(type(error))(self._bounded(_rendering_of(error)))
+        if exact and rendered == self._bounded(rendered):
+            return error
+        return _content_free_type(type(error))(self._bounded(rendered))
 
     def _emit_tool(self, tool: PendingTool, parent: Span, index: int) -> None:
-        span = self._tracer.start_span(
-            f"{GenAi.OPERATION_EXECUTE_TOOL} {tool.name}",
-            start_time_nanos=tool.start_nanos,
-            parent=parent,
-        )
+        # A tool's values are not ours either, and the span and tracer are the
+        # caller's. Nothing here may raise into the caller, and a span that was
+        # started ends whatever happens.
+        try:
+            span = self._tracer.start_span(
+                f"{GenAi.OPERATION_EXECUTE_TOOL} {tool.name}",
+                start_time_nanos=tool.start_nanos,
+                parent=parent,
+            )
+        except Exception:  # noqa: BLE001 - no span, nothing to end
+            return
 
-        span.set_attribute(GenAi.OPERATION_NAME, GenAi.OPERATION_EXECUTE_TOOL)
-        span.set_attribute(GenAi.TOOL_NAME, tool.name)
-        span.set_attribute(GenAi.TOOL_INDEX, index)
-        span.set_attribute(OpenInference.SPAN_KIND, OpenInference.KIND_TOOL)
-        span.set_attribute(OpenInference.TOOL_NAME, tool.name)
+        try:
+            # The status first, as on the root: a span that refuses its
+            # attributes still says whether the call failed.
+            with contextlib.suppress(Exception):
+                span.set_status("error" if tool.failed else "ok")
 
-        if tool.call_id is not None:
-            span.set_attribute(GenAi.TOOL_CALL_ID, tool.call_id)
-            span.set_attribute(OpenInference.TOOL_CALL_ID, tool.call_id)
+            span.set_attribute(GenAi.OPERATION_NAME, GenAi.OPERATION_EXECUTE_TOOL)
+            span.set_attribute(GenAi.TOOL_NAME, tool.name)
+            span.set_attribute(GenAi.TOOL_INDEX, index)
+            span.set_attribute(OpenInference.SPAN_KIND, OpenInference.KIND_TOOL)
+            span.set_attribute(OpenInference.TOOL_NAME, tool.name)
 
-        self._capture(span, OpenInference.TOOL_PARAMETERS, tool.parameters, None)
-        self._capture(
-            span, OpenInference.INPUT_VALUE, tool.parameters, OpenInference.INPUT_MIME_TYPE
-        )
-        self._capture(span, OpenInference.OUTPUT_VALUE, tool.result, OpenInference.OUTPUT_MIME_TYPE)
+            if tool.call_id is not None:
+                span.set_attribute(GenAi.TOOL_CALL_ID, tool.call_id)
+                span.set_attribute(OpenInference.TOOL_CALL_ID, tool.call_id)
 
-        if tool.failed:
-            if self._record_exceptions:
-                span.record_exception(tool.error)
-            span.set_status("error")
-        else:
-            span.set_status("ok")
+            self._capture(span, OpenInference.TOOL_PARAMETERS, tool.parameters, None)
+            self._capture(
+                span, OpenInference.INPUT_VALUE, tool.parameters, OpenInference.INPUT_MIME_TYPE
+            )
+            self._capture(
+                span, OpenInference.OUTPUT_VALUE, tool.result, OpenInference.OUTPUT_MIME_TYPE
+            )
+        except Exception:  # noqa: BLE001, S110 - fewer attributes beat a trace that never closes
+            pass
 
-        span.end(tool.end_nanos)
+        try:
+            if tool.failed and self._record_exceptions:
+                self._record_exception(
+                    span, None if tool.error is None else self._exception(tool.error)
+                )
+        except Exception:  # noqa: BLE001, S110
+            pass
+        finally:
+            with contextlib.suppress(Exception):
+                span.end(tool.end_nanos)
+
+    @staticmethod
+    def _record_exception(span: Span, error: BaseException | None) -> None:
+        """``record_exception``, which may not raise into the caller."""
+        with contextlib.suppress(Exception):
+            span.record_exception(error)
 
     def _apply_usage(self, span: Span, usage: Usage | None) -> None:
         if usage is None:
@@ -995,11 +1160,14 @@ class TelemetrySubscriber:
         if not self._capture_content or value is None:
             return
 
-        text = (
-            value
-            if isinstance(value, str)
-            else _json.dumps(value if self._capture_media else without_media_bytes(value))
-        )
+        try:
+            text = (
+                value
+                if isinstance(value, str)
+                else _json.dumps(value if self._capture_media else without_media_bytes(value))
+            )
+        except Exception:  # noqa: BLE001 - not serialisable: left off the span
+            return
         span.set_attribute(key, self._bounded(text))
 
         if mime_key is not None:

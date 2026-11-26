@@ -57,8 +57,26 @@ leaves the application. They are recorded only with `capture_content=True`.
   `without_media_bytes()` is the function that does it.
 - The model, provider, token counts and rate limits are not content and are
   always recorded.
-- `record_exceptions` is on by default and puts the exception's message on the
-  root span. Turn it off if your errors can carry user content.
+- Exception messages are recorded only when content capture is on. With
+  `capture_content` off, a failed span's status description is
+  `The generation failed.` and `record_exception` receives a stand-in that
+  carries only the exception's class: no message, traceback, cause or notes.
+  The class's module and qualified name are still exported, so do not build
+  exception class names from data. The stand-in is not an instance of the
+  original class, so a span processor that filters on `isinstance` no longer
+  matches; filter on `exception.type` instead.
+- With capture on, the status description is cut to `max_content_length`. The
+  exception itself is recorded unless what an SDK would write from it (its
+  message and its formatted traceback with every cause, context and note) is
+  longer than `max_content_length`, or its `__str__` raises or returns something
+  other than a plain `str`. Then `record_exception` receives a stand-in
+  of the same class name whose message is that text, cut. Like the capture-off
+  stand-in it is not an instance of the original class, and it has no
+  traceback or chain of its own.
+- A captured value that cannot be serialised (a prompt, an output, a tool's
+  parameters or result) is left off the span rather than raising.
+- `record_exceptions` is on by default. Turn it off to record no exception at
+  all.
 
 ## Rate limits
 
