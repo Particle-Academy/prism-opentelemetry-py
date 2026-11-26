@@ -273,7 +273,88 @@ def test_cuts_a_captured_message_to_max_content_length() -> None:
     status = tracer.spans[0].status
     assert status is not None and status[1] is not None and len(status[1]) < 30
     recorded = tracer.spans[0].exceptions[0]
-    assert recorded is not None and len(str(recorded)) < 30
-    assert recorded.__traceback__ is long.__traceback__
+    view = sdk_view(recorded)
+    assert view is not None
+    assert len(view["message"]) < 30
+    assert len(view["stacktrace"]) < 80
     assert type(recorded).__qualname__ == QueryError.__qualname__
     assert len(str(long)) == 5000
+
+
+def test_cuts_a_captured_chain_and_notes_to_max_content_length() -> None:
+    """A short message can still carry a long cause or note into the trace."""
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(
+        tracer, SpanStore(), capture_content=True, max_content_length=10, now=lambda: 0
+    )
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    try:
+        try:
+            raise ValueError("c" * 5000)
+        except ValueError as cause:
+            error = RuntimeError("short")
+            if hasattr(error, "add_note"):  # Python 3.11+
+                error.add_note("n" * 3000)
+            raise error from cause
+    except RuntimeError as raised_error:
+        subscriber.on_generation_failed("t", raised_error)
+
+    view = sdk_view(tracer.spans[0].exceptions[0])
+    assert view is not None
+    assert len(view["stacktrace"]) < 80
+    assert len(view["message"]) < 30
+
+
+def test_records_a_short_captured_exception_itself() -> None:
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, SpanStore(), capture_content=True, now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    error = failure()
+    subscriber.on_generation_failed("t", error)
+    assert tracer.spans[0].exceptions[0] is error
+
+
+def test_still_ends_the_span_when_the_exception_misbehaves() -> None:
+    class LoudMeta(type):
+        def __hash__(cls) -> int:
+            raise RuntimeError("boom")
+
+        def __eq__(cls, other: object) -> bool:
+            raise RuntimeError("boom")
+
+    class Loud(RuntimeError, metaclass=LoudMeta):
+        @property
+        def rate_limits(self) -> Any:
+            raise RuntimeError("boom")
+
+        def __str__(self) -> str:
+            raise RuntimeError("boom")
+
+    for capture in (False, True):
+        tracer = RecordingTracer()
+        store = SpanStore()
+        subscriber = TelemetrySubscriber(tracer, store, capture_content=capture, now=lambda: 0)
+        subscriber.on_generation_started(
+            GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+        )
+        subscriber.on_generation_failed("t", Loud())
+        assert store.span("t") is None
+        assert tracer.spans[0].status is not None and tracer.spans[0].status[0] == "error"
+
+
+def test_an_unnamed_module_renders_as_a_bare_class_name() -> None:
+    nameless = type("Nameless", (RuntimeError,), {"__module__": ""})
+    tracer = RecordingTracer()
+    subscriber = TelemetrySubscriber(tracer, SpanStore(), now=lambda: 0)
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    subscriber.on_generation_failed("t", nameless(MARKER))
+    recorded = tracer.spans[0].exceptions[0]
+    assert recorded is not None
+    assert type(recorded).__module__ == "builtins"
+    assert MARKER not in exported(tracer.spans)

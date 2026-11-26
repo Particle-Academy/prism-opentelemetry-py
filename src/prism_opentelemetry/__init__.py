@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import base64
 import binascii
+import contextlib
 import hashlib
 import json as _json
 import math
 import time
+import traceback
 import weakref
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -572,24 +574,31 @@ def _content_free_type(cls: type[BaseException]) -> type[Exception]:
     The class's module and qualified name are still exported. They are code,
     not data, unless an application builds exception classes from data.
     """
-    try:
+    # A metaclass whose __hash__ or __eq__ raises simply goes uncached.
+    with contextlib.suppress(Exception):
         cached = _STAND_INS.get(cls)
-    except TypeError:
-        cached = None
-    if cached is not None:
-        return cached
-
-    module = cls.__module__ if isinstance(cls.__module__, str) else ""
-    qualname = cls.__qualname__ if isinstance(cls.__qualname__, str) else "Exception"
-    name = cls.__name__ if isinstance(cls.__name__, str) else "Exception"
-    stand_in = type(
-        name, (Exception,), {"__module__": module, "__qualname__": qualname, "__doc__": None}
-    )
+        if cached is not None:
+            return cached
 
     try:
+        module = getattr(cls, "__module__", None)
+        qualname = getattr(cls, "__qualname__", None)
+        name = getattr(cls, "__name__", None)
+        stand_in = type(
+            name if isinstance(name, str) and name else "Exception",
+            (Exception,),
+            {
+                # An unnamed module renders as a bare class name, like a builtin.
+                "__module__": module if isinstance(module, str) and module else "builtins",
+                "__qualname__": qualname if isinstance(qualname, str) and qualname else "Exception",
+                "__doc__": None,
+            },
+        )
+    except Exception:  # noqa: BLE001 - a class that will not describe itself
+        return Exception
+
+    with contextlib.suppress(Exception):
         _STAND_INS[cls] = stand_in
-    except TypeError:
-        pass
     return stand_in
 
 
@@ -604,11 +613,12 @@ def _content_free(error: BaseException) -> BaseException:
     return _content_free_type(type(error))()
 
 
-def _bounded_exception(error: BaseException, message: str) -> BaseException:
-    """A stand-in carrying ``message`` and the original traceback, and no chain."""
-    stand_in = _content_free_type(type(error))(message)
-    stand_in.__suppress_context__ = True
-    return stand_in.with_traceback(error.__traceback__)
+def _message_of(error: BaseException) -> str:
+    """``str(error)``, or an empty string when the exception will not give one."""
+    try:
+        return str(error)
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 def without_media_bytes(value: Any) -> Any:
@@ -858,25 +868,32 @@ class TelemetrySubscriber:
         for index, tool in enumerate(self.store.take_remaining_tools(trace_id)):
             self._emit_tool(tool, span, index)
 
-        # The 429 is the moment an operator most wants the quota numbers, and it
-        # is the one moment they are guaranteed to be reachable: a rate limited
-        # generation has no response for them to travel on, so they travel on
-        # the error instead.
-        self._apply_rate_limits(span, getattr(error, "rate_limits", None))
+        # An exception is not ours: its __str__, its attributes or its class
+        # can raise. Whatever they do, the span ends and the trace is forgotten.
+        try:
+            # The 429 is the moment an operator most wants the quota numbers, and
+            # it is the one moment they are guaranteed to be reachable: a rate
+            # limited generation has no response for them to travel on, so they
+            # travel on the error instead.
+            # No quota numbers from a value that will not give them up.
+            with contextlib.suppress(Exception):
+                self._apply_rate_limits(span, getattr(error, "rate_limits", None))
 
-        if self._record_exceptions:
-            span.record_exception(self._exception(error))
+            if self._record_exceptions:
+                span.record_exception(self._exception(error))
 
-        # A failed generation carries its tool list too, and last for the same
-        # reason: the status, the exception and the quota buckets are what a
-        # reader came for.
-        self._write_held_tools(span, trace_id)
+            # A failed generation carries its tool list too, and last for the
+            # same reason: the status, the exception and the quota buckets are
+            # what a reader came for.
+            self._write_held_tools(span, trace_id)
 
-        span.set_status(
-            "error", self._bounded(str(error)) if self._capture_content else FAILED_DESCRIPTION
-        )
-        span.end(self._now())
-        self.store.forget(trace_id)
+            span.set_status(
+                "error",
+                self._bounded(_message_of(error)) if self._capture_content else FAILED_DESCRIPTION,
+            )
+        finally:
+            span.end(self._now())
+            self.store.forget(trace_id)
 
     def _exception(self, error: BaseException) -> BaseException:
         """What ``record_exception`` may see of a failure.
@@ -887,13 +904,18 @@ class TelemetrySubscriber:
         if not self._capture_content:
             return _content_free(error)
 
-        # Under capture the exception is recorded as it is, unless its message
-        # is longer than any other captured value may be: then a stand-in with
-        # the message cut and the original traceback, without the chain.
-        message = str(error)
-        if message == self._bounded(message):
+        # Under capture the exception is recorded as it is, unless what an SDK
+        # would write from it -- the message, and the formatted traceback with
+        # every cause, context and note -- is longer than any captured value may
+        # be. Then a stand-in whose message is that text, cut, and which has no
+        # traceback or chain of its own to add to it.
+        try:
+            rendered = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+        except Exception:  # noqa: BLE001 - an exception that will not render
+            return _content_free(error)
+        if rendered == self._bounded(rendered):
             return error
-        return _bounded_exception(error, self._bounded(message))
+        return _content_free_type(type(error))(self._bounded(rendered))
 
     def _emit_tool(self, tool: PendingTool, parent: Span, index: int) -> None:
         span = self._tracer.start_span(

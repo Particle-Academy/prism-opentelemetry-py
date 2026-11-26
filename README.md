@@ -64,10 +64,14 @@ leaves the application. They are recorded only with `capture_content=True`.
   The class's module and qualified name are still exported, so do not build
   exception class names from data. The stand-in is not an instance of the
   original class, so a span processor that filters on `isinstance` no longer
-  matches; filter on `exception.type` instead. With capture on, the status
-  description is cut to `max_content_length`, and an exception whose message
-  is longer is recorded as a stand-in with the message cut and the original
-  traceback.
+  matches; filter on `exception.type` instead.
+- With capture on, the status description is cut to `max_content_length`. The
+  exception itself is recorded unless what an SDK would write from it (its
+  message and its formatted traceback with every cause, context and note) is
+  longer than `max_content_length`. Then `record_exception` receives a stand-in
+  of the same class name whose message is that text, cut. Like the capture-off
+  stand-in it is not an instance of the original class, and it has no
+  traceback or chain of its own.
 - `record_exceptions` is on by default. Turn it off to record no exception at
   all.
 
