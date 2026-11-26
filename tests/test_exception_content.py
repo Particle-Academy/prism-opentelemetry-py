@@ -461,3 +461,36 @@ def test_a_tool_span_that_refuses_attributes_does_not_stop_the_failure() -> None
     assert store.span("t") is None
     assert tracer.spans[0].status == ("error", FAILED_DESCRIPTION)
     assert all(isinstance(s, SdkLike) and s.ended for s in tracer.spans)
+
+
+class LenZero(str):
+    def __len__(self) -> int:
+        return 0
+
+
+class LenRaises(str):
+    def __len__(self) -> int:
+        raise RuntimeError("len")
+
+
+@pytest.mark.parametrize("kind", [LenZero, LenRaises])
+def test_a_str_subclass_message_is_still_bounded(kind: type[str]) -> None:
+    class Odd(RuntimeError):
+        def __str__(self) -> str:
+            return kind("x" * 5000)
+
+    tracer = SdkLikeTracer()
+    store = SpanStore()
+    subscriber = TelemetrySubscriber(
+        tracer, store, capture_content=True, max_content_length=10, now=lambda: 0
+    )
+    subscriber.on_generation_started(
+        GenerationContext(trace_id="t", operation="text", provider="p", model="m")
+    )
+    subscriber.on_generation_failed("t", Odd())
+
+    status = tracer.spans[0].status
+    assert status is not None and status[0] == "error"
+    assert status[1] is not None and type(status[1]) is str and len(status[1]) < 30
+    assert store.span("t") is None
+    assert isinstance(tracer.spans[0], SdkLike) and tracer.spans[0].ended

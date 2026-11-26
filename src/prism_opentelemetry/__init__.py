@@ -622,9 +622,15 @@ def _rendering_of(error: BaseException) -> str:
 
 
 def _message_of(error: BaseException) -> str:
-    """``str(error)``, or an empty string when the exception will not give one."""
+    """``str(error)`` as an exact ``str``, or ``""`` when the exception will not give one.
+
+    ``__str__`` may return a ``str`` subclass whose ``__len__`` or ``__getitem__``
+    is its own code; the bound would then run it. ``str.__str__`` copies the
+    characters without calling either.
+    """
     try:
-        return str(error)
+        text = str(error)
+        return text if type(text) is str else str.__str__(text)
     except Exception:  # noqa: BLE001
         return ""
 
@@ -901,6 +907,8 @@ class TelemetrySubscriber:
             # same reason: the status, the exception and the quota buckets are
             # what a reader came for.
             self._write_held_tools(span, trace_id)
+        except Exception:  # noqa: BLE001, S110 - telemetry never raises into the application
+            pass
         finally:
             span.end(self._now())
             self.store.forget(trace_id)
